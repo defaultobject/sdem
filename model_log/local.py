@@ -62,6 +62,30 @@ def ensure_backslash(s):
         return s + '/'
     return s
 
+def get_mount_str(d, read_only=True):
+    if read_only:
+        mount_str = ' -v {d}:/home/app/{t} '
+    else:
+        mount_str = ' --mount src="{d}",target=/home/app/{t},type=bind '
+
+    if type(d) is list:
+        #target mount point has been explictely passed thorugh
+        _d = d[0]
+        _t = d[1]
+    else:
+        _d = d
+        _t = d
+
+    #get absolute path of directory.file
+    d_path = os.path.abspath(_d)
+
+    #get last folder/ as mount point
+
+    t_path = os.path.basename(os.path.normpath(_t))
+
+    s = mount_str.format(d=d_path, t=t_path)
+    return s
+
 def run_docker(exp, experiment_config, run_config):
     name = exp['filename']
     order_id = exp['order_id']
@@ -70,28 +94,19 @@ def run_docker(exp, experiment_config, run_config):
 
     #mount relavant dirs
 
-    dirs = ['.']+run_config['libs']
-    mount_str = ' --mount src="{d}",target=/home/app/{t},type=bind '
+    #will be binded
+    dirs = ['models', 'results']
+
+    #will be read only
+    libs = run_config['libs'] + ['experiment_config.yaml']
 
     total_mount_str = ''
     for d in dirs:
-        if type(d) is list:
-            #target mount point has been explictely passed thorugh
-            _d = d[0]
-            _t = d[1]
-        else:
-            _d = d
-            _t = d
+        total_mount_str += get_mount_str(d, read_only=False)
 
-        #get absolute path of directory.file
-        d_path = ensure_backslash(os.path.abspath(_d))
+    for d in libs:
+        total_mount_str += get_mount_str(d, read_only=True)
 
-        #get last folder/ as mount point
-
-        t_path = os.path.basename(os.path.normpath(_t))
-
-        s = mount_str.format(d=d_path, t=t_path)
-        total_mount_str += s
 
     run_command =  'docker  run  {mount_str} {name}'.format(
         name=docker_name,
@@ -106,6 +121,7 @@ def run_docker(exp, experiment_config, run_config):
         print(run_command)
 
     code = os.system(run_command)
+    return code
 
 
 
