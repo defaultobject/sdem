@@ -75,6 +75,7 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
     else:
         run_command = 'python {filename}'
 
+
     #distinct file names
     files_to_run = list(set([c['filename'] for c in configs_to_run]))
     for _file in files_to_run:
@@ -82,6 +83,7 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
 
         batch = slurmjobs.SlurmBatch(
             run_command.format(filename=_file),
+            name=slurmjobs.util.command_to_name('python {filename}'.format(filename=_file)),
             conda_env=None,
             cli = 'value',
             job_id=False,
@@ -93,6 +95,7 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
         #go over every order_id
         all_order_ids = [c['order_id'] for c in configs_of_file]
         run_script, job_paths = batch.generate([('order_id', all_order_ids)])   
+
 
 def zip_dir(path, zipf, ignore_dir=None):
     """
