@@ -304,6 +304,7 @@ def run():
 
     if settings.verbose_flag:
         print('running ', len(experiments_configs_to_run),' experiments')
+
     if not args['dry']:
         run_experiments(experiments_configs_to_run, experiment_config, run_config)
 

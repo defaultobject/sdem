@@ -51,6 +51,7 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
         Creates a unique folder in jobs for every file in configs_to_run
     """
 
+
     experiment_name = experiment_config['experiment_name']
 
     class ValueArgument(slurmjobs.args.FireArgument):
@@ -67,13 +68,20 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
             return cls.kw_fmt.format(key=k, value=cls.format_value(v))
 
 
+    if 'sif' in run_config.keys():
+        #run using singularity
+        run_command = 'singularity run {sif_location}'.format(sif_location=run_config['sif'])
+        run_command = run_command + ' python {filename}'
+    else:
+        run_command = 'python {filename}'
+
     #distinct file names
     files_to_run = list(set([c['filename'] for c in configs_to_run]))
     for _file in files_to_run:
         configs_of_file = [c for c in configs_to_run if c['filename'] == _file]
 
         batch = slurmjobs.SlurmBatch(
-            'python {filename}'.format(filename=_file),
+            run_command.format(filename=_file),
             conda_env=None,
             cli = 'value',
             job_id=False,

@@ -152,3 +152,14 @@ python run.py --omniboard
 
 
 
+## Run using singularity
+
+Edit the `experiment_config.yaml` file to include the following:
+
+
+
+```yaml
+<cluster>:
+  sif: '../../projects/dsp/dsp_latest.sif'
+```
+
