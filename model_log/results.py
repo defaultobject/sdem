@@ -205,10 +205,17 @@ def get_table_per_metric_with_folds(experiment_name, metrics, name_column, addit
             fold_scores = []
             #folds are now in order of folds so we can just loop thorugh
             for i in fold_columns:
-                if i >= len(folds):
+                #get fold
+                fold_idx = None
+                for _i, f in enumerate(folds):
+                    if f['fold'] == i:
+                        fold_idx = _i
+
+
+                if fold_idx is None:
                     fold_scores.append('N/A')
                 else:
-                    score = folds[i]['score']
+                    score = folds[fold_idx]['score']
                     score = ("{:."+str(decimal_places)+"f}").format(score)
 
                     fold_scores.append(score)
