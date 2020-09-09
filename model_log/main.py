@@ -37,7 +37,7 @@ def arg_dict(v):
 
 def argument_parser() -> dict:
     parser = argparse.ArgumentParser(description='Experiment running parser.')
-    parser.add_argument('--location',  type=str, default='local', help='Location to run on. Either on local computer, or a cluster/server name.')
+    parser.add_argument('--location',  type=str, default='local', help='Location to run on. Either on local computer, or a cluster/server name. docker will run docker locally.')
     parser.add_argument('--config',  type=str, default='experiment_config.yaml', help='Path to experiment config file.')
     parser.add_argument('--force_all',  type=str2bool, default=True, help='Force all experiment to re run, otherwise will only run those that have not already completed.')
     parser.add_argument('--omniboard', help="Start omniboard", action="store_true")

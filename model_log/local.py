@@ -38,8 +38,13 @@ def run_experiments(experiments, experiment_config, run_config):
                 print('Running experiment {name} {order}'.format(name=name, order=order_id))
 
             #run experiment
-            code = os.system('cd models; python {name} {order}'.format(name=name, order=order_id))
-            print(code)
+
+            if experiment_config['location'] == 'docker':
+                code = run_docker(exp, experiment_config, run_config)
+            else:
+
+                run_command =  'cd models; python {name} {order}'
+                code = os.system(run_command.format(name=name, order=order_id))
 
             if code == signal.SIGINT:
                 print('Finishing all runs early!')
@@ -51,6 +56,56 @@ def run_experiments(experiments, experiment_config, run_config):
     except KeyboardInterrupt:
         print('Finishing all runs early!')
         pass
+
+def ensure_backslash(s):
+    if s[-1] != '/':
+        return s + '/'
+    return s
+
+def run_docker(exp, experiment_config, run_config):
+    name = exp['filename']
+    order_id = exp['order_id']
+
+    docker_name = run_config['name']
+
+    #mount relavant dirs
+
+    dirs = ['.']+run_config['libs']
+    mount_str = ' --mount src="{d}",target=/home/app/{t},type=bind '
+
+    total_mount_str = ''
+    for d in dirs:
+        if type(d) is list:
+            #target mount point has been explictely passed thorugh
+            _d = d[0]
+            _t = d[1]
+        else:
+            _d = d
+            _t = d
+
+        #get absolute path of directory.file
+        d_path = ensure_backslash(os.path.abspath(_d))
+
+        #get last folder/ as mount point
+
+        t_path = os.path.basename(os.path.normpath(_t))
+
+        s = mount_str.format(d=d_path, t=t_path)
+        total_mount_str += s
+
+    run_command =  'docker  run  {mount_str} {name}'.format(
+        name=docker_name,
+        mount_str=total_mount_str
+    )
+
+    run_exp_command =  ' /bin/bash -c  "cd /home/app/models; python {name} {order}"'.format(name=name, order=order_id)
+
+    run_command += run_exp_command
+
+    if settings.verbose_flag:
+        print(run_command)
+
+    code = os.system(run_command)
 
 
 
