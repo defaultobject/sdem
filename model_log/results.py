@@ -15,6 +15,8 @@ import copy
 
 import warnings
 
+from string import Template
+
 #"latex_booktabs_raw"
 latex_booktabs_raw_format = tabulate.TableFormat(lineabove=partial(tabulate._latex_line_begin_tabular, booktabs=True),
           linebelowheader=tabulate.Line("\\midrule", "", "", ""),
@@ -29,6 +31,15 @@ metric_name_format = lambda m: '$metrics.{m}.values'.format(m=m)
 training_metric_name = lambda m: '$metrics.training_{m}.values'.format(m=m)
 testing_metric_name = lambda m: '$metrics.testing_{m}.values'.format(m=m)
 
+table_fmt = r"""
+\begin{tabular}{$coaligns}
+\toprule
+$top
+\midrule
+$data
+\bottomrule
+\end{tabular}
+"""
 def get_unwinds(metrics):
     """
         In sacred each of the metrics are stored in an array. We need to go through and flatten them / unwind them.
@@ -123,6 +134,9 @@ def get_group(metrics, additional_config_columns):
 
 
 def get_results(experiment_name, metrics,additional_config_columns ):
+    """
+        gets results grouped additional_config_columns
+    """
     collection = sacred_manager.get_collection(experiment_name)
     pipeline = [
         {
@@ -159,6 +173,8 @@ def max_folds(results, folds_column):
     num_folds = [len(d[folds_column]) for d in results]
     return max(num_folds)
 
+
+
 def tabulate_table(df, latex=False, showindex=False):
     columns = df.columns
     if latex:
@@ -166,6 +182,242 @@ def tabulate_table(df, latex=False, showindex=False):
         print(tabulate.tabulate(df, headers=columns, tablefmt=latex_booktabs_raw_format, showindex=showindex, colalign=coaligns))
     else:
         print(tabulate.tabulate(df, headers=columns, showindex=showindex))
+
+class SafeDict(dict):
+    def __missing__(self, key):
+        return '{' + key + '}'
+
+def get_table_top(df):
+    levels =  df.columns.levels
+    num_of_levels = len(df.columns.levels)
+    level_sizes = [len(l) for l in df.columns.levels]
+    total_num_columns = np.prod(level_sizes)
+    column_names = df.columns.names
+
+    indices = df.index.levels
+    num_indices = len(indices)
+    index_sizes = [len(l) for l in indices]
+
+    extra_columns = [' ' for i in range(num_indices-1)]
+
+    lines = []
+
+    for level in range(num_of_levels):
+        if level + 1 < num_of_levels:
+            next_level_size = level_sizes[level+1]
+            
+            top_table = extra_columns+[column_names[level]]
+            
+            for col in levels[level]:
+                top_table.append(' \multicolumn{size}{c}{name} '.format_map(
+                    SafeDict(
+                        size='{'+str(next_level_size)+'}',
+                        name='{'+str(col)+'}'
+                    )
+                ))
+            top_table = '&'.join(top_table)
+            top_table += '\\\\'
+
+            lines.append(top_table)
+        else:
+            top_table = extra_columns+[column_names[level]]
+
+            for repeat in range(total_num_columns):
+                v = levels[level][repeat % level_sizes[level]]
+                top_table.append(
+                    ' {v} '.format(v=v)
+                )
+            top_table = '&'.join(top_table)
+            top_table += '\\\\'
+
+            lines.append(top_table)
+
+    #add row names
+
+    row_labels = list(df.index.names) + [' ' for i in range(total_num_columns-1)]
+    row_labels = '&'.join(row_labels) + '\\\\'
+
+    lines.append(row_labels)
+
+    return r'  '.join(lines)
+
+def get_table_middle(df):
+    levels =  df.columns.levels
+    num_of_levels = len(df.columns.levels)
+    level_sizes = [len(l) for l in df.columns.levels]
+    total_num_columns = np.prod(level_sizes)
+    column_names = df.columns.names
+
+    indices = df.index.levels
+    num_indices = len(indices)
+    index_sizes = [len(l) for l in indices]
+
+    lines = []
+    for index, row in df.iterrows():
+        total_row = []
+
+        need_multi_row_flags = [False for i in range(num_indices)]
+        
+        #essentially a bin permuator
+        for _i in range(num_indices-1, -1, -1):
+            if _i == num_indices -1:
+                need_multi_row_flags[_i] = True
+            else:
+                if index[_i+1] == indices[_i+1][0]:
+                    if np.all(need_multi_row_flags[_i+1:]):
+                        need_multi_row_flags[_i] = True
+                
+
+        for _i in range(num_indices):
+            if need_multi_row_flags[_i]:
+                next_level_size = np.prod(index_sizes[_i+1:])
+                total_row.append( 
+                    '\multirow{size}{*}{name}'.format_map(
+                        SafeDict(
+                            name='{'+str(index[_i])+'}',
+                            size='{'+str(next_level_size)+'}'
+                        )
+                    )
+                )
+            else:
+                if _i == num_indices-1:
+                    total_row.append(str(index[_i]))
+                else:
+                    total_row.append(' ')
+
+        total_row .append(' ')
+        total_row = ' & '.join(total_row) + ' & '.join(np.array(row)) + ' \\\\'
+        lines.append(total_row)
+
+    return r' '.join(lines)
+
+def tabulate_multi_level_dataframe_to_latex(df):
+    levels =  df.columns.levels
+    num_of_levels = len(df.columns.levels)
+    level_sizes = [len(l) for l in df.columns.levels]
+    total_num_columns = np.prod(level_sizes)
+    column_names = df.columns.names
+
+    indices = df.index.levels
+    num_indices = len(indices)
+    index_sizes = [len(l) for l in indices]
+
+
+    top = get_table_top(df)
+    middle = get_table_middle(df)
+
+    total_columns = total_num_columns + num_indices 
+
+    coaligns = ''.join(["c" for c in range(total_columns)])
+
+    table = Template(table_fmt).substitute(
+        coaligns=coaligns,
+        top=top,
+        data=middle,
+    )
+    return table
+
+    
+
+
+def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2):
+    """
+        Args:
+            input_df: dataframe to turn into a structured table
+            group_by: list of columns/keys that define the distinct groups to average results over (rows of table)
+            results_by: list of columns to get the average of. (columns of table)
+            groups_order: how to order the rows of the table
+            results_order: how to order the columns of the table
+            groups_name_fn: function to label the rows of the table
+            results_name_fn: function to label the columns of the table
+            
+    """
+    warnings.warn('This uses data from the mongo database. Make sure you have synced your local files!')
+
+    data_frames = []
+    for m in metrics:
+        metric_name = metric_name_format(m)
+        results = get_results(experiment_name, [metric_name], [name_column]+group_by+results_by)
+
+        
+        data = []
+        #we add data names as we are constructing the columns
+        data_names = None
+        append_data_name_flag=False
+
+        for row in results:
+            if data_names is None:
+                data_names = []
+                append_data_name_flag=True
+
+            data_row = []
+
+            fold_column = '{m}_folds'.format(m=m)
+
+            folds = row[fold_column]
+
+            if (len(folds) == 0) or (len(folds) > 1):
+                raise RuntimeError('There shold be exactly one fold')
+
+            data_row.append(row['_id']['experiment_id'])
+            data_row.append(row['_id']['fold_id'])
+            if append_data_name_flag:
+                data_names.append('experiment_id')
+                data_names.append('fold_id')
+
+            for g in group_by:
+                d = row['_id'][g]
+
+                data_row.append(d)
+                if append_data_name_flag:
+                    data_names.append(g)
+
+            for g in results_by:
+                d = row['_id'][g]
+
+                data_row.append(d)
+                if append_data_name_flag:
+                    data_names.append(g)
+
+            fold_id = folds[0]['fold']
+            fold_score = folds[0]['score']
+
+            data_row.append(fold_id)
+            data_row.append(fold_score)
+            if append_data_name_flag:
+                data_names.append('fold')
+                data_names.append(m)
+
+            data.append(data_row)
+
+            append_data_name_flag=False
+
+        df = pd.DataFrame(data, columns=data_names)
+        df = df.groupby(group_by+results_by).agg({m: ['mean', 'std']})
+
+        def combine_mean_std(row):
+            m_avg = row['mean']
+            m_std = row['std']
+            testing_m_avg = ("{:."+str(decimal_places)+"f}").format(m_avg)
+            testing_m_std = ("{:."+str(decimal_places)+"f}").format(m_std)
+
+            val = '{avg} $\pm$ {std}'.format(avg=testing_m_avg, std=testing_m_std)
+            return val
+
+        _df = df[m].copy()
+        _df['{m}_score'.format(m=m)] = _df.apply(combine_mean_std, axis=1)
+        _df = _df.drop(columns=['mean', 'std'])
+
+        _df = _df.unstack(level=results_by)
+
+
+        #return _df
+        data_frames.append(_df)
+
+    df =  pd.concat(data_frames, axis=1)
+    return df
+
+
 
 def get_table_per_metric_with_folds(experiment_name, metrics, name_column, additional_columns=None, additional_columns_headers = None, models=None, decimal_places=2, print_latex=False, print_table=True):
     warnings.warn('This uses data from the mongo database. Make sure you have synced your local files!')
