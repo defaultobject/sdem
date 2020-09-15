@@ -97,7 +97,7 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
         run_script, job_paths = batch.generate([('order_id', all_order_ids)])   
 
 
-def zip_dir(path, zipf, ignore_dir=None):
+def zip_dir(path, zipf, ignore_dir=None, dir_path=None):
     """
         Path can be something like ../../folder_1/folder_2/lib/*
         we strip all leading directory structure and zip only lib/*
@@ -105,6 +105,9 @@ def zip_dir(path, zipf, ignore_dir=None):
     #target_dir = os.path.basename(os.path.normpath(path))
 
     path_split = os.path.normpath(path).split(os.sep)
+
+    if dir_path is None:
+        dir_path=''
 
     for root, dirs, files in os.walk(path):
         for f in files:
@@ -115,7 +118,10 @@ def zip_dir(path, zipf, ignore_dir=None):
 
             #remove leading directory structure
             root_split = os.path.normpath(root).split(os.sep)
-            target_dir = os.path.join(*root_split[(len(path_split)-1):])
+            if dir_path:
+                target_dir = dir_path
+            else:
+                target_dir = os.path.join(*root_split[(len(path_split)-1):])
 
             #zipf.write(os.path.join(root, f))    
             #print(os.path.join(target_dir, os.path.join(root, f)))
@@ -225,7 +231,7 @@ def run_experiments(experiments, experiment_config, run_config):
             f_target = f[1]
 
             if os.path.isdir(f_to_zip):
-                zip_dir(f_to_zip, zipf)
+                zip_dir(f_to_zip, zipf, dir_path=f_target)
             else:
                 zipf.write(f_to_zip, f_target)
 

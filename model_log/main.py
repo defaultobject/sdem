@@ -52,6 +52,7 @@ def argument_parser() -> dict:
     parser.add_argument('--prune_unfinished', help="remove all experiments that did not finish", action="store_true")
 
     parser.add_argument('--filter',  type=arg_dict, default={}, help='Filter experiment to run. Default is {} so it does not filter.')
+    parser.add_argument('--filter_file',  type=str, default=None, help='Filter experiment by json file.')
 
     args = parser.parse_args()
 
@@ -273,7 +274,13 @@ def run():
     experiment_config['experiment_name'] = experiment_name
     experiment_config['collection'] = collection
 
-    experiment_config['filter'] = args['filter']
+    if args['filter_file'] is not None:
+        with open(args['filter_file'], 'r') as fh:
+            filter_dict = json.load(fh)
+
+        experiment_config['filter'] = filter_dict
+    else:
+        experiment_config['filter'] = args['filter']
 
     if args['sync']:
         sync_experiments(experiment_config, run_config)
