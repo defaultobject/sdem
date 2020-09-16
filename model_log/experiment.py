@@ -27,10 +27,13 @@ class Experiment(SacredExperiment):
     def configs(self, function):
         self.config_function = function
 
-    def run_config(self, function, config):
+    def run_config(self, function, config, use_observer=True):
         self.observers = [] #reset observed
         self.configurations = []
-        self.observers.append(FileStorageObserver('runs'))
+
+        if use_observer:
+            self.observers.append(FileStorageObserver('runs'))
+
         self.add_config(config)
         captured_function = self.main(lambda: function(config))
         self.run(captured_function.__name__)
@@ -56,18 +59,25 @@ class Experiment(SacredExperiment):
 
         filename = inspect.getfile(function)
 
+        use_observer=True
         i = 0
         if len(sys.argv) == 2:
             i = int(sys.argv[1])
+
+        if len(sys.argv) == 3:
+            i = int(sys.argv[1])
+            flag = int(sys.argv[2])
+
+            use_observer = flag
 
         configs = self.config_function()
 
         if i == -1:
             for i, config in enumerate(configs):
                 config = manager.ensure_correct_fields_for_model_file_config(filename, config, i)
-                self.run_config(function, config)
+                self.run_config(function, config, use_observer=use_observer)
                 
         else:
             config = manager.ensure_correct_fields_for_model_file_config(filename, configs[i], i)
-            self.run_config(function, config)
+            self.run_config(function, config, use_observer=use_observer)
 
