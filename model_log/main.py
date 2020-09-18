@@ -50,6 +50,7 @@ def argument_parser() -> dict:
     parser.add_argument('--dvc-pull', help="Clean up and get experiments from DVC storage", action="store_true")
     parser.add_argument('-v', help="increase output verbosity", action="store_true")
     parser.add_argument('--prune_unfinished', help="remove all experiments that did not finish", action="store_true")
+    parser.add_argument('--no_observer', help="Do not add a sacred observer to the experiment", action="store_true")
 
     parser.add_argument('--filter',  type=arg_dict, default={}, help='Filter experiment to run. Default is {} so it does not filter.')
     parser.add_argument('--filter_file',  type=str, default=None, help='Filter experiment by json file.')
@@ -129,7 +130,9 @@ def run_experiments(experiments, experiment_config, run_config):
 
     if run_config['type'] == 'local':
         local.run_experiments(experiments, experiment_config, run_config)
-        manager.sync_filestorage_with_mongo(experiment_config, run_config)
+
+        if experiment_config['no_observer'] == False:
+            manager.sync_filestorage_with_mongo(experiment_config, run_config)
     elif run_config['type'] == 'cluster':
         #we do not know when the cluster finishes so we will sync separately
         cluster.run_experiments(experiments, experiment_config, run_config)
@@ -252,9 +255,12 @@ def run():
         start_sacredboard(experiment_name)
         return
 
+    
 
 
     experiment_dict, run_config = get_experiment_config(args['config'], args['location'])
+
+
 
     check_if_proper_run_config(run_config)
     check_if_proper_experiment_config(experiment_dict)

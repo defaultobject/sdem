@@ -43,8 +43,13 @@ def run_experiments(experiments, experiment_config, run_config):
                 code = run_docker(exp, experiment_config, run_config)
             else:
 
-                run_command =  'cd models; python {name} {order}'
-                code = os.system(run_command.format(name=name, order=order_id))
+                observer = '1'
+
+                if experiment_config['no_observer']:
+                    observer = '0'
+
+                run_command =  'cd models; python {name} {order} {observer}'
+                code = os.system(run_command.format(name=name, order=order_id, observer=observer))
 
             if code == signal.SIGINT:
                 print('Finishing all runs early!')
@@ -113,7 +118,14 @@ def run_docker(exp, experiment_config, run_config):
         mount_str=total_mount_str
     )
 
-    run_exp_command =  ' /bin/bash -c  "cd /home/app/models; python {name} {order}"'.format(name=name, order=order_id)
+    print(run_command)
+
+    observer = '1'
+
+    if experiment_config['no_observer']:
+        observer = '0'
+
+    run_exp_command =  ' /bin/bash -c  "cd /home/app/models; python {name} {order} {observer}"'.format(name=name, order=order_id, observer=observer)
 
     run_command += run_exp_command
 

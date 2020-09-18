@@ -272,9 +272,26 @@ def prune_experiments(experiment_config, run_config):
         if experiment_id in all_experiment_ids[i+1:]:
             delete_id(folder_path, _id)
 
+def delete_empty_experiments(runs_root, experiment_folders):
+
+    _experiment_folders = [] 
+    for folder in experiment_folders:
+        if not os.listdir(runs_root+'/'+folder):
+            delete_id(runs_root+'/'+folder, folder)
+        else:
+            _experiment_folders.append(folder)
+
+    return _experiment_folders
+
+
 def prune_unfinished(experiment_config, run_config):
     runs_root = 'models/runs'
     experiment_folders = [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
+
+    #check that experiment_folders are not empty
+
+    experiment_folders = delete_empty_experiments(runs_root, experiment_folders)
+
     experiment_folders = order_experiment_folders_by_datetime(experiment_folders)
 
     all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)

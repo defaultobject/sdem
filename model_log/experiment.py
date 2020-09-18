@@ -41,7 +41,6 @@ class Experiment(SacredExperiment):
     def log_metrics(self, X, Y, prediction_fn, var_flag=True, log=True, prefix=None):
         return metrics.log_regression_scalar_metrics(self, X, Y, prediction_fn, var_flag=var_flag, log=log, prefix=prefix)
 
-
     def automain(self, function):
         """
         automain, copies the functionality of sacred automain. Will run the experiment using a specific input

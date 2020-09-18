@@ -160,7 +160,12 @@ def sync_with_cluster(experiment_config, run_config):
     exp_name = experiment_config['experiment_name']
 
     #sync models separately because we need to fix the sacred _id
-    folders_to_sync = ['jobs/', 'results/', 'models/runs/_sources']
+
+    sync_folders = []
+    if 'sync' in run_config.keys():
+        sync_folders = run_config['sync']
+
+    folders_to_sync = ['jobs/', 'results/', 'models/runs/_sources'] + sync_folders
 
     if 'sync_folders' in run_config.keys():
         folders_to_sync += run_config['sync_folders']
