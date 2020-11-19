@@ -174,7 +174,6 @@ def max_folds(results, folds_column):
     return max(num_folds)
 
 
-
 def tabulate_table(df, latex=False, showindex=False):
     columns = df.columns
     if latex:
@@ -320,7 +319,7 @@ def tabulate_multi_level_dataframe_to_latex(df):
     
 
 
-def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2):
+def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2, folds=None, return_raw=False, drop=None):
     """
         Args:
             input_df: dataframe to turn into a structured table
@@ -330,16 +329,20 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
             results_order: how to order the columns of the table
             groups_name_fn: function to label the rows of the table
             results_name_fn: function to label the columns of the table
+            drop: array of dictionaries to drop results by
             
     """
     warnings.warn('This uses data from the mongo database. Make sure you have synced your local files!')
 
     data_frames = []
+
+    #store dataframe without mean and std combined
+    raw_data_frames = []
+
     for m in metrics:
         metric_name = metric_name_format(m)
         results = get_results(experiment_name, [metric_name], [name_column]+group_by+results_by)
 
-        
         data = []
         #we add data names as we are constructing the columns
         data_names = None
@@ -385,7 +388,7 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
             data_row.append(fold_id)
             data_row.append(fold_score)
             if append_data_name_flag:
-                data_names.append('fold')
+                data_names.append('fold_i')
                 data_names.append(m)
 
             data.append(data_row)
@@ -393,7 +396,17 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
             append_data_name_flag=False
 
         df = pd.DataFrame(data, columns=data_names)
+        #calculate the mean and std of each group
         df = df.groupby(group_by+results_by).agg({m: ['mean', 'std']})
+
+        raw_df = df[m].copy()
+
+        raw_df['{m}_mean'.format(m=m)] = raw_df['mean']
+        raw_df['{m}_std'.format(m=m)] = raw_df['std']
+        raw_df = raw_df.drop(columns=['mean', 'std'])
+
+        raw_df.unstack(level=results_by)
+        raw_data_frames.append(raw_df)
 
         def combine_mean_std(row):
             m_avg = row['mean']
@@ -415,7 +428,12 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
         data_frames.append(_df)
 
     df =  pd.concat(data_frames, axis=1)
-    return df
+
+    if return_raw:
+        raw_df = pd.concat(raw_data_frames, axis=1)
+        return df, raw_df
+    else:
+        return df
 
 
 

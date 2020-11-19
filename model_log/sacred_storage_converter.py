@@ -165,7 +165,7 @@ def file_storage_to_mongo_db(project_dir: str, collection, basedir: str, _id: in
     final_d.update({"metrics": metrics_file})
     final_d.update(run_file)
 
-    final_d['captured_out'] = cout_file
+    #final_d['captured_out'] = cout_file
 
     if error_entry:
         final_d['status'] = 'FAILED'
