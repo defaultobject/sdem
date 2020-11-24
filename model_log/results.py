@@ -2,6 +2,7 @@ import pymongo
 
 from . import sacred_manager
 from . import util
+from . import manager
 
 import pandas as pd
 import numpy as np
@@ -16,6 +17,51 @@ import copy
 import warnings
 
 from string import Template
+
+import pathlib
+
+def get_default_experiment_name():
+    return str(pathlib.Path().absolute()).split('/')[-2]+'_runs'
+
+def get_default_all_configs(experiment_name, model_root='../models'):
+    def prep_config(config):
+        _dict = {}
+        for key, item in config.items():
+            if key in ['order_id', 'fold', 'fold_id', 'global_id', 'experiment_id']: continue
+            _dict['config.'+key] = item
+        return _dict
+
+    def get_names_that_match_filter(all_configs, _dict):
+        matched_names = []
+        for key, config in all_configs.items():
+            if manager.dict_is_subset(_dict, config):
+                matched_names.append(key)
+        return matched_names
+
+    def name_generator_fn(config):
+        name_str = []
+        for key in config.keys():
+            if key in ['order_id', 'fold', 'fold_id', 'global_id', 'experiment_id']: continue
+            
+            name_str.append('- {name}: {item}'.format(name=key, item=config[key]))
+
+        return ' '.join(name_str)
+
+        model = config['model']
+        name = 'Model {model} Inference: {inference} correlation_matrix_init: {correlation_matrix_init}'.format(
+            model=model,
+            inference=inference,
+            correlation_matrix_init=config['correlation_matrix_init']
+        )
+        return name
+
+    all_configs = manager.get_configs_from_model_files(model_root=model_root)
+
+    all_configs = {
+        name_generator_fn(config): prep_config(config) for config in all_configs
+    }
+
+    return all_configs
 
 #"latex_booktabs_raw"
 latex_booktabs_raw_format = tabulate.TableFormat(lineabove=partial(tabulate._latex_line_begin_tabular, booktabs=True),
