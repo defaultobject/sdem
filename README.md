@@ -6,6 +6,33 @@
 
 Experiment manager combines [sacred](https://github.com/IDSIA/sacred) and [dvc](https://dvc.org) to run experiments locally, on clusters and across different users. 
 
+## Setup
+
+## Install
+
+```
+pip install requirements.py
+pip install -e .
+```
+
+### SEML
+
+SEML requires a config file:
+
+```
+mkdir ~/.config/seml/
+```
+
+and for the responses use:
+
+```json
+username: default
+password: default
+port: 27017
+database: sacred
+host: localhost
+```
+
 
 
 ## Required Experiment Layout
