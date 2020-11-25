@@ -6,7 +6,24 @@
 
 Experiment manager combines [sacred](https://github.com/IDSIA/sacred) and [dvc](https://dvc.org) to run experiments locally, on clusters and across different users. `model_log  ` requires a mongodb database, install from here https://docs.mongodb.com/manual/tutorial/install-mongodb-on-os-x/. 
 
-## Setup
+## Setup Mongo
+
+```
+mongo
+```
+
+```
+use sacred
+db.createUser(
+  {
+    user: "default",
+    pwd: "default",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+  }
+)
+```
+
+
 
 ## Install
 

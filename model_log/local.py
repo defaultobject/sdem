@@ -90,7 +90,6 @@ def get_mount_str(d, read_only=True):
 
     #get absolute path of directory.file
     d_path = os.path.abspath(_d)
-    print('d_path: ', d_path)
 
     #get last folder/ as mount point
 
