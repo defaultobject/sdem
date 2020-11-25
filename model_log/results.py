@@ -23,6 +23,13 @@ import pathlib
 def get_default_experiment_name():
     return str(pathlib.Path().absolute()).split('/')[-2]+'_runs'
 
+def get_names_that_match_filter(all_configs, _dict):
+    matched_names = []
+    for key, config in all_configs.items():
+        if manager.dict_is_subset(_dict, config):
+            matched_names.append(key)
+    return matched_names
+
 def get_default_all_configs(experiment_name, model_root='../models'):
     def prep_config(config):
         _dict = {}
@@ -31,12 +38,7 @@ def get_default_all_configs(experiment_name, model_root='../models'):
             _dict['config.'+key] = item
         return _dict
 
-    def get_names_that_match_filter(all_configs, _dict):
-        matched_names = []
-        for key, config in all_configs.items():
-            if manager.dict_is_subset(_dict, config):
-                matched_names.append(key)
-        return matched_names
+
 
     def name_generator_fn(config):
         name_str = []

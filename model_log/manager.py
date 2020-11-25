@@ -292,7 +292,7 @@ def prune_unfinished(experiment_config, run_config):
 
     experiment_folders = delete_empty_experiments(runs_root, experiment_folders)
 
-    experiment_folders = order_experiment_folders_by_datetime(experiment_folders)
+    #experiment_folders = order_experiment_folders_by_datetime(experiment_folders)
 
     all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)
     #sort by datetime
