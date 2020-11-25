@@ -30,11 +30,17 @@ def get_names_that_match_filter(all_configs, _dict):
             matched_names.append(key)
     return matched_names
 
-def get_default_all_configs(experiment_name, model_root='../models'):
+def get_default_all_configs(experiment_name, model_root='../models', drop_fold=True):
+    if drop_fold:
+        keys_to_ignore = ['order_id', 'fold', 'fold_id', 'global_id', 'experiment_id']
+    else:
+        keys_to_ignore = ['order_id', 'global_id', 'experiment_id']
+
     def prep_config(config):
         _dict = {}
+
         for key, item in config.items():
-            if key in ['order_id', 'fold', 'fold_id', 'global_id', 'experiment_id']: continue
+            if key in keys_to_ignore: continue
             _dict['config.'+key] = item
         return _dict
 
@@ -43,7 +49,7 @@ def get_default_all_configs(experiment_name, model_root='../models'):
     def name_generator_fn(config):
         name_str = []
         for key in config.keys():
-            if key in ['order_id', 'fold', 'fold_id', 'global_id', 'experiment_id']: continue
+            if key in keys_to_ignore: continue
             
             name_str.append('- {name}: {item}'.format(name=key, item=config[key]))
 
