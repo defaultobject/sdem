@@ -11,6 +11,8 @@ import os
 import seml.queuing
 import signal
 
+from pathlib import Path
+
 import slurmjobs
 from slurmjobs.args import NoArgVal
 import slurmjobs.util as util
@@ -81,8 +83,14 @@ def get_mount_str(d, read_only=True):
         _d = d
         _t = d
 
+    #expand home directory
+    if _d.startswith('~'):
+        home = str(Path.home())
+        _d = home + _d[1:]
+
     #get absolute path of directory.file
     d_path = os.path.abspath(_d)
+    print('d_path: ', d_path)
 
     #get last folder/ as mount point
 
