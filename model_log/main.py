@@ -54,6 +54,7 @@ def argument_parser() -> dict:
 
     parser.add_argument('--filter',  type=arg_dict, default={}, help='Filter experiment to run. Default is {} so it does not filter.')
     parser.add_argument('--filter_file',  type=str, default=None, help='Filter experiment by json file.')
+    parser.add_argument('--run_file',  type=str, default=None, help='Run a file at a specific location')
 
     args = parser.parse_args()
 
@@ -116,6 +117,11 @@ def add_experiment_config_defaults(config: dict) -> dict:
 def print_config(config):
     print(json.dumps(config, sort_keys=True, indent=3))
 
+
+def run_file(experiments, experiment_config, run_config):
+    if run_config['type'] == 'local':
+        local.run_file(experiment_config, run_config)
+    pass
 
 def run_experiments(experiments, experiment_config, run_config):
     """
@@ -318,8 +324,13 @@ def run():
     if settings.verbose_flag:
         print('running ', len(experiments_configs_to_run),' experiments')
 
+
+
     if not args['dry']:
-        run_experiments(experiments_configs_to_run, experiment_config, run_config)
+        if args['run_file']:
+            run_file(experiments_configs_to_run, experiment_config, run_config)
+        else:
+            run_experiments(experiments_configs_to_run, experiment_config, run_config)
 
 
 

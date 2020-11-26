@@ -25,6 +25,13 @@ import hashlib
 
 from . import settings
 
+def run_file(experiment_config, run_config):
+    if experiment_config['location'] == 'docker':
+        code = run_file_docker(experiment_config, run_config)
+    else:
+        run_command =  'python {name}'
+        code = os.system(run_command.format(name=experiment_config['run_file']))
+
 def run_experiments(experiments, experiment_config, run_config):
     """
         Runs all experiments in experiments sequentially on the local machine
@@ -98,10 +105,7 @@ def get_mount_str(d, read_only=True):
     s = mount_str.format(d=d_path, t=t_path)
     return s
 
-def run_docker(exp, experiment_config, run_config):
-    name = exp['filename']
-    order_id = exp['order_id']
-
+def get_docker_run_command(experiment_config, run_config):
     docker_name = run_config['name']
 
     #mount relavant dirs
@@ -124,8 +128,14 @@ def run_docker(exp, experiment_config, run_config):
         name=docker_name,
         mount_str=total_mount_str
     )
+    return run_command
 
-    print(run_command)
+
+def run_docker(exp, experiment_config, run_config):
+    name = exp['filename']
+    order_id = exp['order_id']
+
+    run_command = get_docker_run_command(experiment_config, run_config)
 
     observer = '1'
 
@@ -143,6 +153,22 @@ def run_docker(exp, experiment_config, run_config):
     return code
 
 
+
+def run_file_docker(experiment_config, run_config):
+    run_config['libs'].append(experiment_config['run_file'])
+
+    run_command = get_docker_run_command(experiment_config, run_config)
+
+
+    run_exp_command =  ' /bin/bash -c  "cd /home/app; python {name} "'.format(name=experiment_config['run_file'])
+
+    run_command += run_exp_command
+
+    if settings.verbose_flag:
+        print(run_command)
+
+    code = os.system(run_command)
+    return code
 
 
 
