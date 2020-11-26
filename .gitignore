@@ -1,3 +1,20 @@
+.ipynb_checkpoints/**
+.ipynb_checkpoints
+
+#experiment manager tmp folders
+**/runs/
+**/omniboard/
+**/jobs/
+
+#checkpoints
+*.ckpt
+
+#datafiles
+*.csv
+*.pickle
+*.mat
+*.Rdata
+
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
