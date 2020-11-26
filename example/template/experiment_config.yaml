@@ -1,0 +1,23 @@
+NUM_FOLDS: 5
+
+#==============================EXPERIMENT MANAGER SETTINGS==============================
+experiment:
+  use_config_id: True
+  overwrite_id: True
+
+
+#==============================CLUSTER SETTINGS==============================
+local:
+  type: 'local'
+
+docker:
+  type: 'local'
+  #libs to mount
+  name: 'defaultobject/deep_kernel:latest'
+  libs: [
+    '../../libs',
+    '~/Documents/projects/model_log/model_log/',  
+    '../utils/', 
+    'data/'
+  ]
+
