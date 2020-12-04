@@ -52,7 +52,6 @@ class Experiment(SacredExperiment):
         if function.__module__ != "__main__":
             return
 
-
         if self.config_function is None:
             raise RuntimeError('No config function registered. ')
 

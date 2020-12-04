@@ -9,6 +9,7 @@ def save_to_storage():
         dvc push
     """
     os.system(script)
+    print('REMEMBER TO GIT PUSH!')
 
 def get_from_storage():
     script = """

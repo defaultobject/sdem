@@ -18,7 +18,13 @@ import dateutil.parser
 def ensure_correct_fields_for_model_file_config(experiment: str, config: dict, i: int) -> dict:
     config['filename'] = experiment
 
+    #add empty keys that can be used to add configs after experiment runs without affect IDs
+    additional_key = '__tmp__{i}'
 
+    for new_key_idx in range(10):
+        new_key = additional_key.format(i=new_key_idx)
+        if new_key not in config.keys():
+            config[new_key] = 0
 
     if 'fold' in config.keys():
         #if the experiment has folds get a fold_id that is constistent across folds
@@ -32,8 +38,6 @@ def ensure_correct_fields_for_model_file_config(experiment: str, config: dict, i
     #get order_id AFTER fold because we want the fold_id to be consistent across, and the order_id is always incrememnting
     if 'order_id' not in config.keys():
         config['order_id'] = i
-
-
 
     if 'fold_id' not in config.keys():
         if 'fold' not in config.keys():

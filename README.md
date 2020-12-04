@@ -207,3 +207,30 @@ Edit the `experiment_config.yaml` file to include the following:
   sif: '../../projects/dsp/dsp_latest.sif'
 ```
 
+
+
+## DVC Setup
+
+### Google API Setup
+
+Follow https://dvc.org/doc/user-guide/setup-google-drive-remote#using-a-custom-google-cloud-project 
+
+- Create project here  https://console.developers.google.com/
+
+- Open  `OAuth consent screen`
+- Create OAuth client Credentials
+
+- Enable `Google Drive API`
+
+- Will need to authenticate on first use
+
+### In repo
+
+```
+dvc init
+dvc remote add gremote gdrive://<folder_url_id>
+dvc remote modify gremote gdrive_client_id <client ID>
+dvc remote modify gremote gdrive_client_secret <client secret>
+dvc remote default gremote
+```
+
