@@ -24,7 +24,7 @@ def ensure_correct_fields_for_model_file_config(experiment: str, config: dict, i
     for new_key_idx in range(10):
         new_key = additional_key.format(i=new_key_idx)
         if new_key not in config.keys():
-            config[new_key] = 0
+            config[new_key] = None
 
     if 'fold' in config.keys():
         #if the experiment has folds get a fold_id that is constistent across folds
