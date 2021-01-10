@@ -44,8 +44,6 @@ def get_default_all_configs(experiment_name, model_root='../models', drop_fold=T
             _dict['config.'+key] = item
         return _dict
 
-
-
     def name_generator_fn(config):
         name_str = []
         for key in config.keys():
@@ -373,7 +371,7 @@ def tabulate_multi_level_dataframe_to_latex(df):
     
 
 
-def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2, folds=None, return_raw=False, drop=None):
+def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2, folds=None, return_raw=False, drop=None, drop_mean_std=True):
     """
         Args:
             input_df: dataframe to turn into a structured table
@@ -473,7 +471,8 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
 
         _df = df[m].copy()
         _df['{m}_score'.format(m=m)] = _df.apply(combine_mean_std, axis=1)
-        _df = _df.drop(columns=['mean', 'std'])
+        if drop_mean_std:
+            _df = _df.drop(columns=['mean', 'std'])
 
         _df = _df.unstack(level=results_by)
 
