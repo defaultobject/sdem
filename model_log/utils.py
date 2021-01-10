@@ -4,6 +4,9 @@ import typing
 import os
 import yaml
 import itertools
+import hashlib
+import json
+import uuid
 
 import importlib
 import importlib.util
@@ -47,6 +50,24 @@ def remove_dir_if_exists(root):
 
 def split_path(path: str):
     return os.path.normpath(path).split(os.path.sep)
+
+def print_dict(_dict):
+    print(json.dumps(_dict, indent=3))
+
+def get_dict_without_key(_dict, key):
+    return {i:_dict[i] for i in _dict if i != key}
+
+def get_dict_hash(_dict):
+    """
+        Args:
+            _dict (dict) - a single configuration
+        Returns:
+            md5 hash of the sorted _dict
+    """
+    return hashlib.md5(json.dumps(_dict, sort_keys=True).encode('utf-8')).hexdigest()
+
+def get_unique_key():
+    return uuid.uuid4().hex
 
 def load_mod(root, file_name):
     """ 
