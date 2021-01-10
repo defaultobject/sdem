@@ -5,7 +5,7 @@ from types import ModuleType
 
 from .. import template
 from .. import utils
-from .. import config
+from .. import state
 
 old_imp = builtins.__import__
 
@@ -143,7 +143,7 @@ def get_configs_from_model_files():
 
     for experiment in experiment_files:
 
-        if config.verbose:
+        if state.verbose:
             logger.info(f'Loading configs from {experiment}')
 
         #logger does not exit when it catches an execption, just prints it
@@ -163,3 +163,22 @@ def get_configs_from_model_files():
     reset_import()
 
     return experiment_config_arr
+
+def filter_configs(experiment_configs, filter_dict):
+    """
+        removes configs from experiment_configs that do not match filter_dict
+    """
+    if len(filter_dict.keys()) == 0:
+        #nothing to filter
+        return experiment_configs
+
+    _experiment_configs = []
+    for config in experiment_configs:
+        #check if config matches filter_dict
+        if utils.dict_is_subset(filter_dict, config):
+            _experiment_configs.append(config)
+
+    if state.verbose:
+        logger.info(utils._s('number of experiments before filter: ', len(experiment_configs), ' and after ', len(_experiment_configs)))
+
+    return _experiment_configs

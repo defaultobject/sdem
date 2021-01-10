@@ -1,7 +1,7 @@
 import typer
 from loguru import logger
 
-from . import config #global settings
+from . import state #global settings
 
 from . import template
 
@@ -27,10 +27,14 @@ app.add_typer(vis.app, name="vis")
 
 
 @app.callback()
-def global_state(verbose: bool = False):
+def global_state(verbose: bool = False, dry: bool = False):
     if verbose:
         #logger.info("Will write verbose output")
-        config.verbose = True
+        state.verbose = True
+
+    if dry:
+        #logger.info("Will write verbose output")
+        state.dry = True
 
 def main():
     app()

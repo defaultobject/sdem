@@ -9,7 +9,7 @@ import warnings
 from loguru import logger
 
 from . import  sacred_manager
-from .. import config
+from .. import state
 from .. import dispatch
 from .. import utils
 from ..utils import get_permission, mkdir_if_not_exists, remove_dir_if_exists
@@ -23,7 +23,7 @@ def start_omniboard(experiment_name):
 
         
     """
-    if config.verbose:
+    if state.verbose:
         logger.info('Starting omniboard')
 
     db_config = seml.database.get_mongodb_config()
@@ -46,7 +46,7 @@ def start_omniboard(experiment_name):
         )
 
         if ans is False:
-            if config.verbose:
+            if state.verbose:
                 logger.info('Cant overwrite so exiting')
             return
 
@@ -76,7 +76,7 @@ def start_omniboard(experiment_name):
     os.system('omniboard')
 
     #omniboard now closed
-    if config.verbose:
+    if state.verbose:
         logger.info('Closing down omniboard - cleaning up')
 
     #reset omniboard config

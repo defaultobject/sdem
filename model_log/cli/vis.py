@@ -1,6 +1,6 @@
 import typer
 
-from .. import config
+from .. import state
 from ..computation.sacred_vis import start_omniboard
 from ..computation import sacred_manager
 

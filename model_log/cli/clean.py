@@ -1,10 +1,10 @@
 import typer
 
-from .. import config
+from .. import state
 from .. import dispatch
 
 def clean(
-    location: str = typer.Option("local", help=config.help_texts['location']),
+    location: str = typer.Option("local", help=state.help_texts['location']),
 ):
     pass
 
