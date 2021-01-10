@@ -3,6 +3,8 @@ from loguru import logger
 
 from . import config #global settings
 
+from . import template
+
 from .cli import run 
 from .cli import dvc 
 from .cli import clean 

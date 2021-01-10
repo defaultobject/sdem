@@ -9,13 +9,19 @@ import json
 
 import seml
 
+
 from .util import add_dicts, mkdir_if_not_exists
 
 from . import  sacred_manager, manager
 
-from . import settings
+from .. import config
 
 import warnings
+
+from loguru import logger
+
+from .. import dispatch
+from .. import utils
 
 def start_omniboard(experiment_name):
     """
@@ -26,7 +32,10 @@ def start_omniboard(experiment_name):
 
         
     """
-    warnings.warn('Omniboard does not seem to work unless using the runs collection -- hopefully omniboard will fix this soon!')
+    if config.verbose:
+        logger.info('Starting omniboard')
+
+    #warnings.warn('Omniboard does not seem to work unless using the runs collection -- hopefully omniboard will fix this soon!')
 
     db_config = seml.database.get_mongodb_config()
 
@@ -35,7 +44,26 @@ def start_omniboard(experiment_name):
     host=db_config['host']
     db_name = db_config['db_name']
 
-    mkdir_if_not_exists('omniboard/')
+    template = dispatch.dispatch('template', '')()
+    tmp_dir = template['tmp_dir']
+
+    omniboard_dir = f'{tmp_dir}/omniboard/'
+
+    #if omniboard_dir already exists we need to check that we can delete it
+    if os.path.isdir(omniboard_dir):
+
+        ans = utils.get_permission(
+            f'Omniboard direcotry already exists ({omniboard_dir}), overwrite?'
+        )
+
+        if ans is False:
+            if config.verbose:
+                logger.info('Cant overwrite so exiting')
+            return
+
+    #start omniboard
+    mkdir_if_not_exists(tmp_dir)
+    mkdir_if_not_exists(omniboard_dir)
 
     omniboard_config_dict = {
         'sacred_1': {
@@ -45,26 +73,33 @@ def start_omniboard(experiment_name):
         }
     }
 
-    with open('omniboard/db_config.json', 'w') as fp:
+    with open(f'{omniboard_dir}/db_config.json', 'w') as fp:
         json.dump(omniboard_config_dict, fp)
 
     original_environ = None
+
     if 'OMNIBOARD_CONFIG'  in os.environ.keys():
         original_environ = os.environ["OMNIBOARD_CONFIG"]
 
-    os.environ["OMNIBOARD_CONFIG"] = os.getcwd()+'/omniboard/db_config.json'
-    print(os.getcwd()+'/omniboard/db_config.json')
+    os.environ["OMNIBOARD_CONFIG"] = os.getcwd()+'{omniboard_dir}/db_config.json'
 
+    #start omniboard
     os.system('omniboard')
 
-    if settings.verbose_flag:
-        print('closing down')
 
-    if True:
-        if original_environ is None:
-            del os.environ["OMNIBOARD_CONFIG"]
-        else:
-            os.environ["OMNIBOARD_CONFIG"] = original_environ
+    #omniboard now closed
+    if config.verbose:
+        logger.info('Closing down omniboard - cleaning up')
+
+    #reset omniboard config
+    if original_environ is None:
+        del os.environ["OMNIBOARD_CONFIG"]
+    else:
+        os.environ["OMNIBOARD_CONFIG"] = original_environ
+
+
+    #delete omniboard folder
+    os.system(f'rm -rf {tmp_dir}/omniboard/')
 
 def start_sacredboard(experiment_name):
     db_config = seml.database.get_mongodb_config()
