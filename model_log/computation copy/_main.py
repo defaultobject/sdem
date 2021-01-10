@@ -261,11 +261,8 @@ def run():
         start_sacredboard(experiment_name)
         return
 
-    
-
 
     experiment_dict, run_config = get_experiment_config(args['config'], args['location'])
-
 
 
     check_if_proper_run_config(run_config)
@@ -323,8 +320,6 @@ def run():
 
     if settings.verbose_flag:
         print('running ', len(experiments_configs_to_run),' experiments')
-
-
 
     if not args['dry']:
         if args['run_file']:
