@@ -14,7 +14,7 @@ import gpflow
 
 import model_log
 from model_log import Experiment
-from model_log.util import read_yaml, get_all_permutations
+from model_log.utils import read_yaml, get_all_permutations
 
 import warnings
 warnings.simplefilter('always', UserWarning)

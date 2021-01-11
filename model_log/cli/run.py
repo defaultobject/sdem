@@ -2,7 +2,7 @@ import typer
 
 from .. import state
 from .. import dispatch
-from ..computation import manager
+from ..computation import manager, local_runner
 from .. import utils
 
 def run(
@@ -38,7 +38,7 @@ def run(
 
 @dispatch.register('run', 'local')
 def local_run(configs_to_run, run_settings):
-    print('local_ron')
+    local_runner.local_run(configs_to_run, run_settings)
 
 @dispatch.register('run', 'docker')
 def docker_run(configs_to_run, run_settings):

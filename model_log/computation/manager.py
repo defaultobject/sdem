@@ -16,10 +16,10 @@ class DummyModule(ModuleType):
 
 def set_custom_import():
     """
-        When import configs we may in another python enviroment (ie a specific plotting environment) but we still need to be able to load
-            the configs the model dirs.
+        When importing configs we may be in another python enviroment (ie a specific plotting environment) but we still need to be able to load
+            the configs define in the model files.
 
-        To get around this we add an import hook to create dummy modules when laoding configs.
+        To get around this we add an import hook to create dummy modules when loading the configs.
 
         If configs depend on a module that is not loaded then it should loudly fail.
 
@@ -170,13 +170,14 @@ def filter_configs(experiment_configs, filter_dict):
     """
     if len(filter_dict.keys()) == 0:
         #nothing to filter
-        return experiment_configs
+        _experiment_configs = experiment_configs
+    else:
 
-    _experiment_configs = []
-    for config in experiment_configs:
-        #check if config matches filter_dict
-        if utils.dict_is_subset(filter_dict, config):
-            _experiment_configs.append(config)
+        _experiment_configs = []
+        for config in experiment_configs:
+            #check if config matches filter_dict
+            if utils.dict_is_subset(filter_dict, config):
+                _experiment_configs.append(config)
 
     if state.verbose:
         logger.info(utils._s('number of experiments before filter: ', len(experiment_configs), ' and after ', len(_experiment_configs)))
