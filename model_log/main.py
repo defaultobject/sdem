@@ -165,6 +165,9 @@ def ask_permission(question, fn):
 
 def clean_up(experiment_config, run_config):
     experiment_name = experiment_config['experiment_name']
+
+    _id = manager.make_and_get_tmp_delete_folder()
+
     if run_config['type'] == 'cluster':
         ask_permission(
             'Delete experiment {name} on cluster?'.format(name=experiment_name),
@@ -186,7 +189,7 @@ def clean_up(experiment_config, run_config):
         )
         ask_permission(
             'Prune experiment files and fix IDs?',
-            lambda: manager.prune_and_fix_experiment_ids(experiment_config, run_config)
+            lambda: manager.prune_and_fix_experiment_ids(experiment_config, run_config, _id)
         )
         ask_permission(
             'Re-sync local files with mongo?',
@@ -200,6 +203,8 @@ def clean_up(experiment_config, run_config):
             'Remove cluster temp files?',
             lambda: cluster.clean_up_temp_files(experiment_config, run_config)
         )
+
+        manager.remove_tmp_folder_if_empty(_id)
 
 def prune_unfinished(experiment_config, run_config):
     ask_permission(

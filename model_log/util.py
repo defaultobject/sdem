@@ -76,9 +76,19 @@ def add_dicts(dict_array: typing.List[dict], deepcopy=False) -> dict:
 def mkdir_if_not_exists(root):
     Path(root).mkdir(exist_ok=True)
 
+
+
 def remove_dir_if_exists(root):
     if os.path.exists(root):
         shutil.rmtree(root)
+
+def move_dir_if_exists(root, tmp_dir):
+    if os.path.exists(root):
+        shutil.move(root, tmp_dir)
+
+def delete_if_empty(d):
+    if len(os.listdir(d)) == 0:
+        remove_dir_if_exists(d)
 
 def get_digest_from_bytes(f):
     """Compute the MD5 hash for a given file."""
