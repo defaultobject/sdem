@@ -15,6 +15,37 @@ import uuid
 import numpy as np
 import dateutil.parser
 
+import builtins
+from types import ModuleType
+
+old_imp = builtins.__import__
+
+class DummyModule(ModuleType):
+    def __getattr__(self, key):
+        return None
+    __all__ = []   # support wildcard imports
+
+def set_custom_import():
+    """
+        When importing configs we may be in another python enviroment (ie a specific plotting environment) but we still need to be able to load
+            the configs define in the model files.
+        To get around this we add an import hook to create dummy modules when loading the configs.
+        If configs depend on a module that is not loaded then it should loudly fail.
+    """
+
+    def custom_import(name, *args, **kwargs):
+        try:
+            m = old_imp(name, *args, **kwargs)
+        except Exception as e:
+            m = DummyModule(name)
+
+        return m
+
+    builtins.__import__ = custom_import
+
+def reset_import():
+    builtins.__import__ = old_imp
+
 
 def ensure_correct_fields_for_model_file_config(experiment: str, config: dict, i: int) -> dict:
     config['filename'] = experiment
@@ -72,6 +103,7 @@ def get_configs_from_model_files(model_root = 'models/'):
             fold_id: ID that is constant for all configs within a fold
     """
     
+    set_custom_import()
 
     experiment_files = [filename for filename in os.listdir(model_root) if filename.startswith("m_")]
 
@@ -94,6 +126,8 @@ def get_configs_from_model_files(model_root = 'models/'):
                 print(e)
                 raise e
 
+
+    reset_import()
 
     return experiment_config_arr
 
