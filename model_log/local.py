@@ -26,7 +26,7 @@ import hashlib
 from . import settings
 
 def run_file(experiment_config, run_config):
-    if experiment_config['location'] == 'docker':
+    if ('docker' in run_config.keys()) and (run_config['docker']):
         code = run_file_docker(experiment_config, run_config)
     else:
         run_command =  'python {name}'
@@ -48,9 +48,12 @@ def run_experiments(experiments, experiment_config, run_config):
 
             #run experiment
 
-            if experiment_config['location'] == 'docker':
+            print(run_config.keys())
+            if ('docker' in run_config.keys()) and (run_config['docker']):
+                print('runnning in docker')
                 code = run_docker(exp, experiment_config, run_config)
             else:
+                print('runnning locally')
 
                 observer = '1'
 

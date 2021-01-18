@@ -51,7 +51,6 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
         Creates a unique folder in jobs for every file in configs_to_run
     """
 
-
     experiment_name = experiment_config['experiment_name']
 
     class ValueArgument(slurmjobs.args.FireArgument):
@@ -68,18 +67,23 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
             return cls.kw_fmt.format(key=k, value=cls.format_value(v))
 
 
-    if 'sif' in run_config.keys():
-        #run using singularity
-        run_command = 'singularity run {sif_location}'.format(sif_location=run_config['sif'])
-        run_command = run_command + ' python {filename}'
-    else:
-        run_command = 'python {filename}'
-
-
     #distinct file names
     files_to_run = list(set([c['filename'] for c in configs_to_run]))
     for _file in files_to_run:
         configs_of_file = [c for c in configs_to_run if c['filename'] == _file]
+
+        #assume that every config has the same sif file
+        if 'sif' in configs_of_file[0].keys():
+            #run using singularity defined in model file
+            run_command = 'singularity run {sif_location}'.format(sif_location=configs_of_file[0]['sif'])
+            run_command = run_command + ' python {filename}'
+
+        elif 'sif' in run_config.keys():
+            #run using singularity
+            run_command = 'singularity run {sif_location}'.format(sif_location=run_config['sif'])
+            run_command = run_command + ' python {filename}'
+        else:
+            run_command = 'python {filename}'
 
         batch = slurmjobs.SlurmBatch(
             run_command.format(filename=_file),
@@ -281,8 +285,10 @@ def run_experiments(experiments, experiment_config, run_config):
 
 def check_experiments(experiment_config, run_config):
     exp_name = experiment_config['experiment_name']
+
     remotehost = '{user}@{host}'.format(user=run_config['user'], host=run_config['host'])
     script = CHECK_CLUSTER_SCRIPT.format(key=run_config['key'], remotehost=remotehost, exp_name=exp_name, user=run_config['user'])
+
     try:    
         os.system(script)
     except Exception as e:

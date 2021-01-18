@@ -338,7 +338,7 @@ def prune_unfinished(experiment_config, run_config):
     runs_root = 'models/runs'
     experiment_folders = [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
 
-    tmp_id = manager.make_and_get_tmp_delete_folder()
+    tmp_id = make_and_get_tmp_delete_folder()
 
     #check that experiment_folders are not empty
 
@@ -348,7 +348,6 @@ def prune_unfinished(experiment_config, run_config):
 
     all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)
     #sort by datetime
-
 
 
     collection = experiment_config['collection']

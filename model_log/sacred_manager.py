@@ -180,7 +180,8 @@ def match_config_filters_to_fold_ids(experiment_name, filter_dicts):
             print('matching ids: ', unique_ids)
             raise RuntimeError('There should only be one _id. Make sure that config filter is unique.')
 
-        match_dict[rows[0]['fold_id']] = name
+        #match_dict[rows[0]['fold_id']] = name
+        match_dict[name] = rows[0]['fold_id']
         
     return match_dict
 

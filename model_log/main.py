@@ -55,6 +55,7 @@ def argument_parser() -> dict:
     parser.add_argument('--filter',  type=arg_dict, default={}, help='Filter experiment to run. Default is {} so it does not filter.')
     parser.add_argument('--filter_file',  type=str, default=None, help='Filter experiment by json file.')
     parser.add_argument('--run_file',  type=str, default=None, help='Run a file at a specific location')
+    parser.add_argument('--id',  type=int, default=None, help='id int')
 
     args = parser.parse_args()
 
@@ -258,6 +259,9 @@ def run():
     settings.verbose_flag = verbose_flag
 
     experiment_name = sacred_manager.get_experiment_name()
+    if args['id']:
+        _id = args['id']
+        experiment_name += f'_{_id}'
 
     if args['omniboard']:
         start_omniboard(experiment_name)
