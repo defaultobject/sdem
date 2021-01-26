@@ -252,8 +252,8 @@ def get_valid_experiment_ids():
 
 def make_and_get_tmp_delete_folder():
     _id = uuid.uuid4().hex
-    Path("models/tmp").mkdir(exist_ok=True)
-    Path(f"models/tmp/{_id}").mkdir(exist_ok=True)
+    Path("model_log_tmp").mkdir(exist_ok=True)
+    Path(f"model_log_tmp/{_id}").mkdir(exist_ok=True)
     return _id
 
 def remove_tmp_folder_if_empty(_id):
@@ -368,8 +368,9 @@ def prune_unfinished(experiment_config, run_config):
                 status = d['status']
         except Exception as e:
             print('Error getting experiment _id from experient run - ', _id)
+            print('Exception:',  e)
             delete_id(folder_path, _id, tmp_id)
-            raise e
+            #raise e
 
         if status != 'COMPLETED': 
             delete_id(folder_path, _id, tmp_id)

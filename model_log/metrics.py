@@ -14,7 +14,21 @@ def log_regression_scalar_metrics(ex, X, Y, prediction_fn, var_flag=True, log=Tr
 
     #fix shapes
 
+    N = true_Y.shape[0]
+
+    true_Y = np.array(true_Y)
+    pred_Y = np.array(pred_Y)
+
+    print(pred_Y)
+    true_Y = true_Y.reshape([N])
+    pred_Y = pred_Y.reshape([N])
+
     #remove any nans
+
+    non_nan_idx = np.logical_not(np.isnan(true_Y))
+
+    true_Y = true_Y[non_nan_idx]
+    pred_Y = pred_Y[non_nan_idx]
 
     #log metrics
     metric_fns = {

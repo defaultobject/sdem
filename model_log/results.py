@@ -471,6 +471,7 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
 
         _df = df[m].copy()
         _df['{m}_score'.format(m=m)] = _df.apply(combine_mean_std, axis=1)
+
         if drop_mean_std:
             _df = _df.drop(columns=['mean', 'std'])
 
