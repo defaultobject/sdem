@@ -14,18 +14,24 @@ REQUIRED_KEYS = [
     'tmp_dir'
 ]
 
+_DEFAULT_TEMPLATE = {
+    'run_dir': '.',
+    'experiment_prefix': None,
+    'model_dir': 'models',
+    'scared_run_files': 'models/runs',
+    'results_files': 'results',
+    'data_files': 'data',
+    'run_command': 'python ',
+    'delete_dir': None, #this will permanently delete files
+    'tmp_dir': 'tmp',
+    'local_config': 'experiment_config.yaml',
+    'project_config': '../experiment_config.yaml',
+    'global_config': None,
+}
+
 @dispatch.register('template', '')
 def default_template():
-    return {
-        'run_dir': '.',
-        'experiment_prefix': None,
-        'model_dir': 'models',
-        'scared_run_files': 'models/runs',
-        'results_files': 'results',
-        'data_files': 'data',
-        'delete_dir': None, #this will permanently delete files
-        'tmp_dir': 'tmp'
-    }
+    return _DEFAULT_TEMPLATE
 
 def check_template(template):
     for key in REQUIRED_KEYS:

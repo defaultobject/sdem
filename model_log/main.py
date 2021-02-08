@@ -2,8 +2,9 @@ import typer
 from loguru import logger
 
 from . import state #global settings
-
 from . import template
+
+from .computation import startup
 
 from .cli import run 
 from .cli import dvc 
@@ -35,6 +36,16 @@ def global_state(verbose: bool = False, dry: bool = False):
     if dry:
         #logger.info("Will write verbose output")
         state.dry = True
+
+    #Ensure that model_log is running in the correct folder etc
+    pass_flag = startup.check()
+
+    if not pass_flag:
+        exit()
+
+    #load config
+    config = startup.load_config()
+    state.experiment_config = config
 
 def main():
     app()

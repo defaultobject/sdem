@@ -2,7 +2,7 @@ import typer
 
 from .. import state
 from .. import dispatch
-from ..computation import manager, local_runner
+from ..computation import manager, local_runner, docker_runner
 from .. import utils
 
 def construct_filter(_filter, filter_file):
@@ -20,6 +20,7 @@ def construct_filter(_filter, filter_file):
 def run(
     location: str = typer.Option("local", help=state.help_texts['location']),
     force_all: bool = typer.Option(True, help=state.help_texts['force_all']),
+    observer: bool = typer.Option(True, help=state.help_texts['observer']),
     filter: str = typer.Option("{}", help=state.help_texts['filter']),
     filter_file: str = typer.Option(None, help=state.help_texts['filter_file']),
 ):
@@ -29,6 +30,7 @@ def run(
     
     #group together params so passing them around is easier
     run_settings = {
+        'observer': observer,
         'force_all': force_all
     }
 
@@ -48,6 +50,6 @@ def local_run(configs_to_run, run_settings):
 
 @dispatch.register('run', 'docker')
 def docker_run(configs_to_run, run_settings):
-    print('docker_ron')
+    docker_runner.docker_run(configs_to_run, run_settings)
 
 
