@@ -5,14 +5,8 @@ from .. import dispatch
 from ..computation import manager, local_runner
 from .. import utils
 
-def run(
-    location: str = typer.Option("local", help=state.help_texts['location']),
-    force_all: bool = typer.Option(True, help=state.help_texts['force_all']),
-    filter: str = typer.Option("{}", help=state.help_texts['filter']),
-    filter_file: str = typer.Option(None, help=state.help_texts['filter_file']),
-):
-
-    filter_dict = utils.str_to_dict(filter)
+def construct_filter(_filter, filter_file):
+    filter_dict = utils.str_to_dict(_filter)
 
     filter_from_file = {}
     if filter_file is not None:
@@ -20,7 +14,19 @@ def run(
         filter_from_file = utils.json_from_file(filter_file)
 
     filter_dict =  utils.add_dicts([filter_dict, filter_from_file])
+    return filter_dict
 
+
+def run(
+    location: str = typer.Option("local", help=state.help_texts['location']),
+    force_all: bool = typer.Option(True, help=state.help_texts['force_all']),
+    filter: str = typer.Option("{}", help=state.help_texts['filter']),
+    filter_file: str = typer.Option(None, help=state.help_texts['filter_file']),
+):
+
+    #construct filter from passed input and file input
+    filter_dict = construct_filter(filter, filter_file)
+    
     #group together params so passing them around is easier
     run_settings = {
         'force_all': force_all
