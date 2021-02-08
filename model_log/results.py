@@ -371,7 +371,7 @@ def tabulate_multi_level_dataframe_to_latex(df):
     
 
 
-def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2, folds=None, return_raw=False, drop=None, drop_mean_std=True):
+def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=1, name_column='experiment_id', groups_order=None, results_order=None, groups_name_fn=None, results_name_fn=None, decimal_places=2, folds=None, return_raw=False, drop=None, drop_mean_std=True, metric_scale=None):
     """
         Args:
             input_df: dataframe to turn into a structured table
@@ -448,6 +448,10 @@ def get_ordered_table(experiment_name, metrics, group_by, results_by, num_folds=
             append_data_name_flag=False
 
         df = pd.DataFrame(data, columns=data_names)
+        if metric_scale is not None:
+            if m in metric_scale:
+                print('multiplying by metrix scale ', m, ' ', metric_scale[m])
+                df[m] = df[m] * metric_scale[m]
         #calculate the mean and std of each group
         df = df.groupby(group_by+results_by).agg({m: ['mean', 'std']})
 

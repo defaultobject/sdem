@@ -108,8 +108,11 @@ def get_mount_str(d, read_only=True):
     s = mount_str.format(d=d_path, t=t_path)
     return s
 
-def get_docker_run_command(experiment_config, run_config):
-    docker_name = run_config['name']
+def get_docker_run_command(experiment_config, run_config, exp=None):
+    if exp is not None and 'dockerfile' in exp.keys():
+        docker_name = exp['dockerfile']
+    else:
+        docker_name = run_config['name']
 
     #mount relavant dirs
 
@@ -138,7 +141,7 @@ def run_docker(exp, experiment_config, run_config):
     name = exp['filename']
     order_id = exp['order_id']
 
-    run_command = get_docker_run_command(experiment_config, run_config)
+    run_command = get_docker_run_command(experiment_config, run_config, exp=exp)
 
     observer = '1'
 

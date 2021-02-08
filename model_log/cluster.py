@@ -85,6 +85,18 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
         else:
             run_command = 'python {filename}'
 
+        ncpus=1 #this is actually the number of nodes
+        ngpus=0
+
+        if 'cpus' in run_config['sbatch'].keys():
+            ncpus = run_config['sbatch']['cpus']
+            run_config['sbatch'].pop('cpus')
+
+        if 'gpus' in run_config['sbatch'].keys():
+            ngpus = run_config['sbatch']['gpus']
+            run_config['sbatch'].pop('gpus')
+
+
         batch = slurmjobs.SlurmBatch(
             run_command.format(filename=_file),
             name=slurmjobs.util.command_to_name('python {filename}'.format(filename=_file)),
@@ -93,7 +105,11 @@ def create_slurm_scripts(configs_to_run, experiment_config, run_config):
             job_id=False,
             run_dir='~/{name}/models/'.format(name=experiment_name),
             modules=run_config['modules'],
-            sbatch_options=run_config['sbatch']
+            sbatch_options=run_config['sbatch'],
+            ncpus=ncpus,
+            n_cpus=ncpus, #get around a bug in slurm jobs
+            ngpus=ngpus,
+            n_gpus=ngpus,
         )
 
         #go over every order_id
@@ -277,10 +293,12 @@ def run_experiments(experiments, experiment_config, run_config):
     for _file in files_to_run:
         _filename = os.path.splitext(os.path.basename(_file))[0]
 
-        jobs += "mkdir jobs/{_file}/slurm && sh jobs/{_file}/run_{_file}.sh \n".format(_file=_filename)
+        #jobs += "mkdir jobs/{_file}/slurm && sh ./jobs/{_file}/run_{_file}.sh \n".format(_file=_filename)
+        jobs += "mkdir jobs/{_file}/slurm \n".format(_file=_filename)
 
     #run experiments and get batch ids
     run_ssh_script = SSH_SCRIPT.format(key=run_config['key'], remotehost=remotehost, exp_name=experiment_name, jobs=jobs)
+    print('run_ssh_script: ', run_ssh_script)
     os.system(run_ssh_script)
 
 def check_experiments(experiment_config, run_config):

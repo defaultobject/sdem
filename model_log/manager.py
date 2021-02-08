@@ -172,15 +172,32 @@ def dict_is_subset(dict1, dict2):
 def get_filtered_configs_from_model_files(filter_dict):
     experiment_configs = get_configs_from_model_files()
 
-    if len(filter_dict.keys()) == 0:
-        #nothing to filter
-        return experiment_configs
-
     _experiment_configs = []
-    for config in experiment_configs:
-        #check if config matches filter_dict
-        if dict_is_subset(filter_dict, config):
-            _experiment_configs.append(config)
+
+    def get_subset(experiment_configs, _filter):
+        _experiment_configs_arr = []
+        if len(_filter.keys()) == 0:
+            #nothing to filter
+            return experiment_configs
+
+        for config in experiment_configs:
+            #check if config matches _filter
+            if dict_is_subset(_filter, config):
+                _experiment_configs_arr.append(config)
+
+        return _experiment_configs_arr
+
+
+    if type(filter_dict) is list:
+        for _dict in filter_dict:
+            arr = get_subset(experiment_configs, _dict)
+            _experiment_configs += arr
+
+    else:
+        arr = get_subset(experiment_configs, filter_dict)
+        print(arr)
+        _experiment_configs += arr
+
 
     if settings.verbose_flag:
         print('number of experiments before filter: ', len(experiment_configs), ' and after ', len(_experiment_configs))
@@ -257,15 +274,15 @@ def make_and_get_tmp_delete_folder():
     return _id
 
 def remove_tmp_folder_if_empty(_id):
-    util.delete_if_empty(f"models/tmp/{_id}")
-    util.delete_if_empty("models/tmp")
+    util.delete_if_empty(f"model_log_tmp/{_id}")
+    util.delete_if_empty("model_log_tmp")
 
 
 def delete_id(folder_path, _id, tmp_folder_id):
     if settings.verbose_flag:
         print('DELETING ID: ', _id)
 
-    util.move_dir_if_exists(folder_path, f"models/tmp/{tmp_folder_id}")
+    util.move_dir_if_exists(folder_path, f"model_log_tmp/{tmp_folder_id}")
 
 def get_experiment_ids_from_folders(experiment_folders):
     runs_root = 'models/runs'
@@ -316,10 +333,15 @@ def prune_experiments(experiment_config, run_config, tmp_id):
             raise e
 
         if experiment_id not in valid_experiment_ids:
+            if settings.verbose_flag:
+                print(f'deleting {_id} because it is not a valid experiment id')
+
             delete_id(folder_path, _id, tmp_id)
 
         #+1 because we want to see if the experiment id was run AFTER this current run
         if experiment_id in all_experiment_ids[i+1:]:
+            if settings.verbose_flag:
+                print(f'deleting {_id} because a newer run exists')
             delete_id(folder_path, _id, tmp_id)
 
 def delete_empty_experiments(runs_root, experiment_folders, tmp_id):
