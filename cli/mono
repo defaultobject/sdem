@@ -1,0 +1,4 @@
+import model_log
+from model_log import main
+
+main.main()
