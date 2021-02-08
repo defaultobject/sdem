@@ -1,5 +1,6 @@
 import os
 from loguru import logger
+import pathlib
 import builtins
 from types import ModuleType
 
@@ -214,3 +215,16 @@ def filter_configs(experiment_configs, filter_dict):
         logger.info(utils._s('number of experiments before filter: ', len(experiment_configs), ' and after ', len(_experiment_configs)))
 
     return _experiment_configs
+
+def create_default_experiment():
+    tmpl = template.get_template()
+    folders_to_create = [
+        tmpl['model_dir'],
+        tmpl['scared_run_files'],
+        tmpl['results_files'],
+        tmpl['data_files']
+    ]
+
+    for _folder in folders_to_create:
+        if _folder is not None:
+            pathlib.Path(f'{_folder}').mkdir(parents=True, exist_ok=True) 
