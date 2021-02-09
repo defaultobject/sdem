@@ -92,6 +92,17 @@ def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_
         else:
             run_command = 'python {filename}'
 
+        ncpus=1 #this is actually the number of nodes
+        ngpus=0
+
+        if 'cpus' in cluster_config['sbatch'].keys():
+            ncpus = cluster_config['sbatch']['cpus']
+            cluster_config['sbatch'].pop('cpus')
+
+        if 'gpus' in cluster_config['sbatch'].keys():
+            ngpus = cluster_config['sbatch']['gpus']
+            cluster_config['sbatch'].pop('gpus')
+
         batch = slurmjobs.SlurmBatch(
             run_command.format(filename=_file),
             name=slurmjobs.util.command_to_name('python {filename}'.format(filename=_file)),
@@ -100,12 +111,22 @@ def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_
             job_id=False,
             run_dir='~/{name}/models/'.format(name=experiment_name),
             modules=cluster_config['modules'],
-            sbatch_options=cluster_config['sbatch']
+            sbatch_options=cluster_config['sbatch'],
+            ncpus=ncpus,
+            n_cpus=ncpus, #get around a bug in slurm jobs
+            ngpus=ngpus,
+            n_gpus=ngpus,
         )
 
         #go over every order_id
         all_order_ids = [c['order_id'] for c in configs_of_file]
         run_script, job_paths = batch.generate([('order_id', all_order_ids)])   
+
+def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
+    pass
+
+def move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
+    pass
 
 def run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
     """
@@ -115,7 +136,9 @@ def run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config
             Move files to cluster
             Run slurm scripts
     """
-    create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config)
+
+
+
 
 @decorators.run_if_not_dry
 def cluster_run(configs_to_run, run_settings, location):
@@ -123,6 +146,12 @@ def cluster_run(configs_to_run, run_settings, location):
         Checks if experiment is not already on cluster
             if so then exit
             else setup on cluster and run
+
+        To run on cluster we:
+            Create slurm scripts of running
+            Compress files to send over to cluster
+            Move files to cluster
+            Run slurm scripts
     """
     experiment_config = state.experiment_config
     cluster_config = experiment_config[location]
@@ -134,4 +163,7 @@ def cluster_run(configs_to_run, run_settings, location):
 
         return None
 
+    create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config)
+    compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
+    move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
     run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
