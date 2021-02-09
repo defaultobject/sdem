@@ -2,7 +2,7 @@ import typer
 
 from .. import state
 from .. import dispatch
-from ..computation import manager, local_runner, docker_runner
+from ..computation import manager, local_runner, docker_runner, cluster
 from .. import utils
 
 def construct_filter(_filter, filter_file):
@@ -38,18 +38,30 @@ def run(
     configs_to_run = manager.get_configs_from_model_files()
     configs_to_run = manager.filter_configs(configs_to_run, filter_dict)
 
-    #get relevant run function
-    fn = dispatch.dispatch('run', location)
+    experiment_config = state.experiment_config
 
-    fn(configs_to_run, run_settings)
+    #if cluster 
+    if location in experiment_config.keys():
+        if experiment_config[location]['type'] == 'cluster':
+            fn = dispatch.dispatch('run', 'cluster')
+
+    else:
+        #get relevant run function
+        fn = dispatch.dispatch('run', location)
+
+    fn(configs_to_run, run_settings, location)
 
 
 @dispatch.register('run', 'local')
-def local_run(configs_to_run, run_settings):
+def local_run(configs_to_run, run_settings, location):
     local_runner.local_run(configs_to_run, run_settings)
 
 @dispatch.register('run', 'docker')
-def docker_run(configs_to_run, run_settings):
+def docker_run(configs_to_run, run_settings, location):
     docker_runner.docker_run(configs_to_run, run_settings)
+
+@dispatch.register('run', 'cluster')
+def cluster_run(configs_to_run, run_settings, location):
+    cluster.cluster_run(configs_to_run, run_settings, location)
 
 

@@ -74,6 +74,8 @@ def get_experiment_name():
     """
         The experiment name is the same as the root folder that stores the experiment  
     """
+    experiment_config = state.experiment_config
+
     cwd = os.getcwd().split('/')
 
     tmpl = template.get_template()
@@ -84,8 +86,8 @@ def get_experiment_name():
 
     basename = cwd[-run_folder_depth]
 
-    if tmpl['experiment_prefix'] is not None:
-        experiment_prefix = tmpl['experiment_prefix']
+    if 'experiment_name_prefix' in experiment_config.keys():
+        experiment_prefix = experiment_config['experiment_name_prefix']
 
         name = f"{experiment_prefix}_{basename}"
     else:

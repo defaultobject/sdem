@@ -23,7 +23,6 @@ app.add_typer(dvc.app, name="dvc")
 vis_app = typer.Typer()
 app.add_typer(vis.app, name="vis")
 
-
 @app.callback()
 def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
     if verbose:
