@@ -38,7 +38,7 @@ def get_config():
     #num_folds and split_type keys needed to load dataloader
     configs =  {
         'name': ['template'],
-        'fold': list(range(ex_config['NUM_FOLDS']))
+        'fold': list(range(5))
     }
 
     return get_all_permutations(configs)
