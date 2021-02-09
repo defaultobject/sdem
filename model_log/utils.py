@@ -13,6 +13,7 @@ import importlib
 import importlib.util
 from loguru import logger
 import typing
+import zipfile
 
 YES_LIST = ('yes', 'true', 't', 'y', '1')
 NO_LIST = ('no', 'false', 'f', 'n', '0')
@@ -167,7 +168,7 @@ def get_all_permutations(options):
     permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
     return permutations_dicts
 
-def zip_dir(path, zipf, ignore_dir=None, dir_path=None):
+def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
     """
         Path can be something like ../../folder_1/folder_2/lib/*
         we strip all leading directory structure and zip only lib/*
@@ -181,10 +182,15 @@ def zip_dir(path, zipf, ignore_dir=None, dir_path=None):
 
     for root, dirs, files in os.walk(path):
         for f in files:
-            if ignore_dir is not None:
-                #if the root starts with ignore dir then we do not want to zip it
-                if str(root).startswith(ignore_dir):
-                    continue
+            if ignore_dir_arr is not None:
+                ignore_flag = False
+                for ignore_dir in ignore_dir_arr:
+                    #if the root starts with ignore dir then we do not want to zip it
+                    if str(root).startswith(ignore_dir):
+                        ignore_flag = True
+                if ignore_flag:
+                    #do not zip this dir
+                    continue 
 
             #remove leading directory structure
             root_split = os.path.normpath(root).split(os.sep)

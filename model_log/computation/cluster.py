@@ -2,6 +2,8 @@ from loguru import logger
 
 from .. import state
 from .. import decorators
+from .. import template
+from .. import utils
 from . import manager
 
 import os
@@ -15,13 +17,18 @@ import zipfile
 import subprocess
 
 
-SSH_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+UNPACK_ON_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
 unzip cluster.zip -d {exp_name}
 rm -rf cluster.zip
 cd {exp_name}
 mkdir results
 {jobs}
 HERE"""
+
+SSH_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+cd {exp_name}
+{jobs}
+HERE""" 
 
 CHECK_IF_EXPERIMENT_ON_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
     test -d "{exp_name}" && echo "1" || echo "0"
@@ -36,6 +43,8 @@ HERE"""
 CHECK_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
     squeue -u {user}
 HERE"""
+
+CLUSTER_ZIP = 'jobs/cluster.zip'
 
 def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
     remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
@@ -123,22 +132,89 @@ def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_
         run_script, job_paths = batch.generate([('order_id', all_order_ids)])   
 
 def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
-    pass
+    tmpl = template.get_template()
+
+    cluster_zip = CLUSTER_ZIP
+    libs = cluster_config['libs']
+    files_to_move = ['jobs/', 'data/'] + libs
+    folders_to_ignore = ['models/runs'] + tmpl['ignore_dirs']
+
+
+    #clean up existing runs of this functin
+    if os.path.exists(cluster_zip):
+        os.remove(cluster_zip)
+
+
+    #go through every file to move and zip
+    zipf = zipfile.ZipFile(cluster_zip, 'w', zipfile.ZIP_DEFLATED)
+    for f in files_to_move:
+        if type(f) == list:
+            #this defines a file/folder with a target folder structure
+            f_to_zip = f[0]
+            f_target = f[1]
+
+            if os.path.isdir(f_to_zip):
+                utils.zip_dir(f_to_zip, zipf, dir_path=f_target)
+            else:
+                zipf.write(f_to_zip, f_target)
+
+        elif os.path.exists(f):
+            if os.path.isdir(f):
+                utils.zip_dir(f, zipf)
+            else:
+                zipf.write(f)
+        else:
+            if state.verbose:
+                logger.info('file {f} does not exists -- skipping!'.format(f=f))
+
+    #move models over. This is special case because we want to ignore the 'runs' folder.
+    folder_to_move = 'models/'
+    utils.zip_dir(folder_to_move, zipf, ignore_dir_arr=folders_to_ignore)
+
+    zipf.close()
 
 def move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
-    pass
+
+    #move zip file to cluster
+    localfile = CLUSTER_ZIP
+    remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
+    remotefile = '.'
+
+    if state.verbose:
+        logger.info('sending files to: {remotehost}'.format(remotehost=remotehost))
+
+    s = 'scp -i %s "%s" "%s:%s"' % (cluster_config['key'], localfile, remotehost, remotefile)
+
+    os.system(s)
+
+    #unzip on cluster
+
+    files_to_run = list(set([c['filename'] for c in configs_to_run]))
+    jobs = ""
+    for _file in files_to_run:
+        _filename = os.path.splitext(os.path.basename(_file))[0]
+
+        jobs += "mkdir jobs/{_file}/slurm \n".format(_file=_filename)
+
+    run_ssh_script = UNPACK_ON_CLUSTER_SCRIPT.format(key=cluster_config['key'], remotehost=remotehost, exp_name=experiment_name, jobs=jobs)
+    os.system(run_ssh_script)
 
 def run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
-    """
-        To run on cluster we:
-            Create slurm scripts of running
-            Compress files to send over to cluster
-            Move files to cluster
-            Run slurm scripts
-    """
+    remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
 
+    files_to_run = list(set([c['filename'] for c in configs_to_run]))
+    
+    jobs = ""
 
+    for _file in files_to_run:
+        _filename = os.path.splitext(os.path.basename(_file))[0]
 
+        jobs += "sh ./jobs/{_file}/run_{_file}.sh \n".format(_file=_filename)
+
+    #run experiments and get batch ids
+    run_ssh_script = SSH_SCRIPT.format(key=cluster_config['key'], remotehost=remotehost, exp_name=experiment_name, jobs=jobs)
+
+    os.system(run_ssh_script)
 
 @decorators.run_if_not_dry
 def cluster_run(configs_to_run, run_settings, location):
@@ -166,4 +242,7 @@ def cluster_run(configs_to_run, run_settings, location):
     create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config)
     compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
     move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
-    run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
+
+    #only run experiments on cluster if run_sbatch flag is true
+    if run_settings['run_sbatch']:
+        run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config)

@@ -18,6 +18,7 @@ _DEFAULT_TEMPLATE = {
     'run_dir': '.',
     'experiment_prefix': None,
     'model_dir': 'models',
+    'ignore_dirs': ['models/checkpoints'],
     'scared_run_files': 'models/runs',
     'results_files': 'results',
     'data_files': 'data',

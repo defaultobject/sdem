@@ -23,6 +23,7 @@ def run(
     observer: bool = typer.Option(True, help=state.help_texts['observer']),
     filter: str = typer.Option("{}", help=state.help_texts['filter']),
     filter_file: str = typer.Option(None, help=state.help_texts['filter_file']),
+    run_sbatch: bool = typer.Option(True, help='Automatically call sbatch to run files on cluster?'),
 ):
 
     #construct filter from passed input and file input
@@ -31,7 +32,8 @@ def run(
     #group together params so passing them around is easier
     run_settings = {
         'observer': observer,
-        'force_all': force_all
+        'force_all': force_all,
+        'run_sbatch': run_sbatch,
     }
 
     #load experiment configs and filter
