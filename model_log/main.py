@@ -6,7 +6,7 @@ from . import template
 
 from .computation import startup
 
-from .cli import run, dvc, clean, vis, sync, setup
+from .cli import run, dvc, clean, vis, sync, setup, rollback
 
 app = typer.Typer()
 
@@ -15,6 +15,7 @@ app.command()(run.run)
 app.command()(clean.clean)
 app.command()(sync.sync)
 app.command()(setup.setup)
+app.command()(rollback.rollback)
 
 dvc_app = typer.Typer()
 app.add_typer(dvc.app, name="dvc")
