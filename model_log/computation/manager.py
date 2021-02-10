@@ -70,7 +70,7 @@ def get_experiment_config():
 
     return _config
 
-def get_experiment_name():
+def get_experiment_folder_name():
     """
         The experiment name is the same as the root folder that stores the experiment  
     """
@@ -85,6 +85,15 @@ def get_experiment_name():
     run_folder_depth = len(utils.split_path(tmpl['run_dir']))
 
     basename = cwd[-run_folder_depth]
+
+    return basename
+
+
+
+def get_experiment_name():
+    experiment_config = state.experiment_config
+
+    basename = get_experiment_folder_name()
 
     if 'experiment_name_prefix' in experiment_config.keys():
         experiment_prefix = experiment_config['experiment_name_prefix']

@@ -44,6 +44,8 @@ CHECK_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=
     squeue -u {user}
 HERE"""
 
+SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e "ssh -i {key}" {remotehost}:{folder_dest} {folder_origin}'
+
 CLUSTER_ZIP = 'jobs/cluster.zip'
 
 def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
@@ -58,6 +60,8 @@ def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
         print('continuing and assuming experiment does not exist')
 
     return False
+
+
 
 def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config):
     """
@@ -136,7 +140,7 @@ def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cl
 
     cluster_zip = CLUSTER_ZIP
     libs = cluster_config['libs']
-    files_to_move = ['jobs/', 'data/'] + libs + [tmpl[local_config], tmpl[project_config] + tmpl[global_config]]
+    files_to_move = ['jobs/', 'data/'] + libs + [tmpl['local_config'], tmpl['project_config'], tmpl['global_config']]
     folders_to_ignore = ['models/runs'] + tmpl['ignore_dirs']
 
 
@@ -148,7 +152,7 @@ def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cl
     #go through every file to move and zip
     zipf = zipfile.ZipFile(cluster_zip, 'w', zipfile.ZIP_DEFLATED)
     for f in files_to_move:
-        if f in None: continue
+        if f is None: continue
 
         if type(f) == list:
             #this defines a file/folder with a target folder structure
@@ -248,3 +252,112 @@ def cluster_run(configs_to_run, run_settings, location):
     #only run experiments on cluster if run_sbatch flag is true
     if run_settings['run_sbatch']:
         run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
+
+@decorators.run_if_not_dry
+def clean_up_cluster(location):
+    experiment_config = state.experiment_config
+    cluster_config = experiment_config[location]
+    experiment_name = manager.get_experiment_name()
+
+    remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
+    script = CLEAN_UP_CLUSTER_SCRIPT.format(key=cluster_config['key'], remotehost=remotehost, exp_name=experiment_name)
+
+    if state.verbose:
+        logger.info(f'Cleaning {remotehost}')
+
+    try:    
+        os.system(script)
+    except Exception as e:
+        if state.verbose:
+            print(f'An error occured while cleaning - {remotehost}')
+
+        print(e)
+
+
+def sync_files(folders_to_sync, folder_origin, cluster_config):
+    remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
+
+    sync_script_f = SYNC_SCRIPT.format(key=cluster_config['key'], remotehost=remotehost, folder_dest=folders_to_sync, folder_origin=folder_origin)
+    os.system(sync_script_f)
+
+def get_folders_to_sync(experiment_name, cluster_config):
+    #this does not sync models because that is delt with separetly so that the sacred ids can be fixed
+
+    #get list of folders that we need to sync from cluster
+    folders_to_sync = ['jobs/', 'results/', 'models/runs/_sources']
+
+    if 'sync' in cluster_config.keys():
+        folders_to_sync += cluster_config['sync']
+
+    if 'sync_folders' in cluster_config.keys():
+        folders_to_sync += cluster_config['sync_folders']
+
+
+    folders_to_sync = [experiment_name+'/'+f for f in folders_to_sync]
+    folders_to_sync = "'"+' '.join(folders_to_sync)+"'"
+
+    return folders_to_sync
+
+def fix_run_ids(experiment_name):
+    #if there are any sacred experiments they will be in cluster_temp/experiment_name/models/runs/*
+    runs_root = 'models/runs/'
+    remote_root = 'cluster_temp/'+experiment_name+'/models/runs/'
+
+    if not(os.path.exists(remote_root)):
+        #it seems nothing was synced and so cluster_temp does not exist
+        if state.verbose:
+            logger.info('No sacred runs were synced, so no run ids to fix, continuing')
+        return
+
+
+    utils.mkdir_if_not_exists(runs_root)
+
+    #get max id
+    origin_ids = [int(folder) for folder in os.listdir(runs_root) if folder.isnumeric()]
+    max_id = 1
+    if len(origin_ids) > 0:
+        max_id = max(origin_ids) +1
+
+
+    remote_files = [folder for folder in os.listdir(remote_root) if folder.isnumeric()]
+
+    for i, _file in enumerate(remote_files):
+        filepath = remote_root+_file
+        _id = max_id + i 
+        os.system('mv {filepath} models/runs/{_id}'.format(filepath=filepath, _id=_id))
+
+@decorators.run_if_not_dry
+def sync_with_cluster(location):
+    """
+        Downloads 
+    """
+    experiment_config = state.experiment_config
+    cluster_config = experiment_config[location]
+    experiment_name = manager.get_experiment_name()
+    experiment_folder_name = manager.get_experiment_folder_name()
+
+    if not(check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
+        if state.verbose:
+            logger.info(f'No experiment to sync on cluster - {location}, exiting!')
+
+        return None
+
+    #get folders to sync without models folder
+    #on the cluster the folder created may be prefixed, so we need the folder names
+        #on the cluster and locally may not match up. hence sync to the local experiment
+        #folder name
+    folders_to_sync = get_folders_to_sync(experiment_folder_name, cluster_config)
+
+    #move files from cluster
+    sync_files(folders_to_sync, '.', cluster_config)
+
+    folder_origin = experiment_folder_name+'/cluster_temp/'
+    sync_files(experiment_name+'/models/', folder_origin, cluster_config)
+
+    #fix sacred run ids
+    fix_run_ids(experiment_folder_name)
+
+    #clean up
+    os.system('rm -rf cluster_temp')
+
+

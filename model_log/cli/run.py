@@ -16,14 +16,13 @@ def construct_filter(_filter, filter_file):
     filter_dict =  utils.add_dicts([filter_dict, filter_from_file])
     return filter_dict
 
-
 def run(
     location: str = typer.Option("local", help=state.help_texts['location']),
     force_all: bool = typer.Option(True, help=state.help_texts['force_all']),
     observer: bool = typer.Option(True, help=state.help_texts['observer']),
     filter: str = typer.Option("{}", help=state.help_texts['filter']),
     filter_file: str = typer.Option(None, help=state.help_texts['filter_file']),
-    run_sbatch: bool = typer.Option(True, help='Automatically call sbatch to run files on cluster?'),
+    sbatch: bool = typer.Option(True, help='If true will automatically call sbatch to run files on cluster'),
 ):
 
     #construct filter from passed input and file input
@@ -33,7 +32,7 @@ def run(
     run_settings = {
         'observer': observer,
         'force_all': force_all,
-        'run_sbatch': run_sbatch,
+        'run_sbatch': sbatch,
     }
 
     #load experiment configs and filter
@@ -46,7 +45,9 @@ def run(
     if location in experiment_config.keys():
         if experiment_config[location]['type'] == 'cluster':
             fn = dispatch.dispatch('run', 'cluster')
-
+        else:
+            #get relevant run function
+            fn = dispatch.dispatch('run', location)
     else:
         #get relevant run function
         fn = dispatch.dispatch('run', location)
