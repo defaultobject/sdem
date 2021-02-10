@@ -381,4 +381,8 @@ def sync_with_cluster(location):
     #clean up
     os.system('rm -rf cluster_temp')
 
+def clean_up_temp_files():
+    tmpl = template.get_template()
 
+    utils.remove_dir_if_exists('jobs')
+    utils.remove_dir_if_exists('cluster_temp')

@@ -4,8 +4,16 @@ from .. import state
 from .. import decorators
 from ..utils import ask_permission
 
+from . import manager, sacred_manager, cluster
+
 @decorators.run_if_not_dry
 def clean():
+    """
+        We do not delete any experiments, only move them to a temporal folder.
+    """
+
+    tmp_id = manager.make_and_get_tmp_delete_folder()
+
     if state.use_mongo:
         ask_permission(
             'Sync local files with mongo?',
@@ -14,7 +22,7 @@ def clean():
 
     ask_permission(
         'Prune experiment files and fix IDs?',
-        lambda: None
+        lambda: sacred_manager.prune_experiments(tmp_id)
     )
 
     if state.use_mongo:
@@ -23,18 +31,20 @@ def clean():
             lambda: None
         )
 
-    ask_permission(
-        'Remove untracked mongo files?',
-        lambda: None
-    )
+        ask_permission(
+            'Remove untracked mongo files?',
+            lambda: None
+        )
 
 
-    ask_permission(
-        'Remove untracked artifact files?',
-        lambda: None
-    )
+        ask_permission(
+            'Remove untracked artifact files?',
+            lambda: None
+        )
 
     ask_permission(
         'Remove cluster temp files?',
-        lambda: None
+        lambda: cluster.clean_up_temp_files()
     )
+
+    manager.remove_tmp_folder_if_empty(tmp_id)

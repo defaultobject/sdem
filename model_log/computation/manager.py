@@ -3,6 +3,8 @@ from loguru import logger
 import pathlib
 import builtins
 from types import ModuleType
+import uuid
+from pathlib import Path
 
 from .. import template
 from .. import utils
@@ -207,6 +209,10 @@ def get_configs_from_model_files():
 
     return experiment_config_arr
 
+def get_valid_experiment_ids():
+    configs = get_configs_from_model_files()
+    return [c['experiment_id'] for c in configs]
+
 def filter_configs(experiment_configs, filter_dict):
     """
         removes configs from experiment_configs that do not match filter_dict
@@ -239,3 +245,19 @@ def create_default_experiment():
     for _folder in folders_to_create:
         if _folder is not None:
             pathlib.Path(f'{_folder}').mkdir(parents=True, exist_ok=True) 
+
+def make_and_get_tmp_delete_folder():
+    tmpl = template.get_template()
+    bin_dir = tmpl['bin_dir']
+
+    _id = uuid.uuid4().hex
+    Path(f"{bin_dir}").mkdir(exist_ok=True)
+    Path(f"{bin_dir}/{_id}").mkdir(exist_ok=True)
+    return _id
+
+def remove_tmp_folder_if_empty(_id):
+    tmpl = template.get_template()
+    bin_dir = tmpl['bin_dir']
+
+    utils.delete_if_empty(f"{bin_dir}/{_id}")
+    utils.delete_if_empty(f"{bin_dir}")

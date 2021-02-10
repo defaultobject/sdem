@@ -25,6 +25,7 @@ _DEFAULT_TEMPLATE = {
     'run_command': 'python ',
     'delete_dir': None, #this will permanently delete files
     'tmp_dir': 'tmp',
+    'bin_dir': 'bin_model_log',
     'local_config': 'experiment_config.yaml',
     'project_config': '../project_config.yaml',
     'global_config': None
