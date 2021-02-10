@@ -94,12 +94,60 @@ def get_experiment_ids_from_folders(experiment_folders):
         experiment_ids.append(experiment_id)
     return experiment_ids
 
+def delete_empty_experiments(runs_root, experiment_folders, tmp_id):
+    _experiment_folders = [] 
+    for folder in experiment_folders:
+        if not os.listdir(runs_root+'/'+folder):
+            delete_id(runs_root+'/'+folder, folder, tmp_id)
+        else:
+            _experiment_folders.append(folder)
+
+    return _experiment_folders
+
+def prune_unfinished(tmp_id):
+    runs_root = 'models/runs'
+    experiment_folders = [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
+
+    #check that experiment_folders are not empty
+    experiment_folders = delete_empty_experiments(runs_root, experiment_folders, tmp_id)
+
+    all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)
+
+    for i, _id in enumerate(experiment_folders):
+        folder_path = runs_root+'/'+_id
+
+        _id = int(_id)
+        #get experiment+id
+        try:
+            with open('{root}/{_id}/config.json'.format(root=runs_root, _id=_id)) as f:
+                d = json.load(f)
+                experiment_id = d['experiment_id']
+                fold_id = d['fold_id']
+                global_id = d['global_id']
+
+            with open('{root}/{_id}/run.json'.format(root=runs_root, _id=_id)) as f:
+                d = json.load(f)
+                status = d['status']
+        except Exception as e:
+            if state.verbose:
+                logger.info('Error getting experiment _id from experient run - ', _id)
+            delete_id(folder_path, _id, tmp_id)
+            #raise e
+
+        if status != 'COMPLETED': 
+            delete_id(folder_path, _id, tmp_id)
+        else:
+            if state.verbose:
+                logger.info('KEEPING: ', _id)
 
 
 def prune_experiments(tmp_id):
     """
         Removes all local experiment folders that do not have a valid config id and removes all but the last of each config_id
     """
+
+    prune_unfinished(tmp_id)
+
     experiment_config = state.experiment_config
 
     tmpl = template.get_template()
