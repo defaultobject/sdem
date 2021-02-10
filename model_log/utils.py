@@ -216,3 +216,8 @@ def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
             #zipf.write(os.path.join(root, f))    
             #print(os.path.join(target_dir, os.path.join(root, f)))
             zipf.write(os.path.join(root, f), os.path.join(target_dir, f))    
+
+def ensure_backslash(s):
+    if s[-1] != '/':
+        return s + '/'
+    return s

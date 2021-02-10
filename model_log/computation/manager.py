@@ -159,7 +159,7 @@ def ensure_correct_fields_for_model_file_config(experiment: str, config: dict, i
     return config
 
 
-def get_configs_from_model_files():
+def get_configs_from_model_files(model_root=None):
     """
         Assumes that all configs are defined within the model files:
             models/m_{name}.py
@@ -174,8 +174,9 @@ def get_configs_from_model_files():
         If these are not provided they will be automatically generated. 
     """
 
-    tmpl = template.get_template()
-    model_root = tmpl['model_dir']
+    if model_root is None:
+        tmpl = template.get_template()
+        model_root = tmpl['model_dir']
     
     experiment_files = [filename for filename in os.listdir(model_root) if filename.startswith("m_")]
 

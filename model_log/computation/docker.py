@@ -1,10 +1,6 @@
 import os
 from pathlib import Path
 
-def ensure_backslash(s):
-    if s[-1] != '/':
-        return s + '/'
-    return s
 
 def get_mount_str(d, read_only=True):
     if read_only:
