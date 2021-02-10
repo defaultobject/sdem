@@ -53,11 +53,15 @@ def get_permission(question):
         return True
     return False
 
-def ask_permission(question, fn):
+def ask_permission(question, fn=None):
     #Ask permission before running fn
     ans = get_permission(question)
-    if ans:
-        fn()
+
+    if fn is None:
+        return ans
+    else:
+        if ans:
+            fn()
 
 def mkdir_if_not_exists(root):
     Path(root).mkdir(exist_ok=True)

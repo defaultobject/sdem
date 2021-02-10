@@ -259,6 +259,19 @@ def clean_up_cluster(location):
     cluster_config = experiment_config[location]
     experiment_name = manager.get_experiment_name()
 
+    if not(check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
+        if state.verbose:
+            logger.info(f'Experiment {experiment_name} is not on cluster - {location}, nothing to clean!')
+
+        return None
+
+    ans = utils.ask_permission(
+        f'Delete {experiment_name} on cluster?'
+    )
+
+    #we do not have permission to delete the experiment
+    if ans is False: return
+
     remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
     script = CLEAN_UP_CLUSTER_SCRIPT.format(key=cluster_config['key'], remotehost=remotehost, exp_name=experiment_name)
 
