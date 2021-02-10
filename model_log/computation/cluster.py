@@ -136,7 +136,7 @@ def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cl
 
     cluster_zip = CLUSTER_ZIP
     libs = cluster_config['libs']
-    files_to_move = ['jobs/', 'data/'] + libs
+    files_to_move = ['jobs/', 'data/'] + libs + [tmpl[local_config], tmpl[project_config] + tmpl[global_config]]
     folders_to_ignore = ['models/runs'] + tmpl['ignore_dirs']
 
 
@@ -148,6 +148,8 @@ def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cl
     #go through every file to move and zip
     zipf = zipfile.ZipFile(cluster_zip, 'w', zipfile.ZIP_DEFLATED)
     for f in files_to_move:
+        if f in None: continue
+
         if type(f) == list:
             #this defines a file/folder with a target folder structure
             f_to_zip = f[0]
