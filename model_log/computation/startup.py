@@ -29,3 +29,10 @@ def load_config():
 
 
     return _config
+
+def load_externals():
+    experiment_config = state.experiment_config
+
+    if 'external_file' in experiment_config.keys():
+        utils.load_mod('.', experiment_config['external_file'])
+

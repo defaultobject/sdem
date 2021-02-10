@@ -27,7 +27,7 @@ _DEFAULT_TEMPLATE = {
     'tmp_dir': 'tmp',
     'local_config': 'experiment_config.yaml',
     'project_config': '../project_config.yaml',
-    'global_config': None,
+    'global_config': None
 }
 
 @dispatch.register('template', '')

@@ -312,6 +312,14 @@ def get_folders_to_sync(experiment_name, cluster_config):
     return folders_to_sync
 
 def fix_run_ids(experiment_name):
+    """
+        Sacred runs start from 1. To merge cluster runs and local runs we simply 
+            get the max run id locally, rename all cluster runs to add on the max id and 
+            then merge
+
+        This guarrentees that there will be no conflicts, and assuming no runs have been deleted
+            will ensure that the runs are named sequentially
+    """
     #if there are any sacred experiments they will be in cluster_temp/experiment_name/models/runs/*
     runs_root = 'models/runs/'
     remote_root = 'cluster_temp/'+experiment_name+'/models/runs/'

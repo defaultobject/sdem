@@ -46,6 +46,9 @@ def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
     config = startup.load_config()
     state.experiment_config = config
 
+    #load any external files specified in the experiment_config
+    startup.load_externals()
+
 
 def main():
     app()
