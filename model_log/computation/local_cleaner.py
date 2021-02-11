@@ -3,6 +3,7 @@ from loguru import logger
 from .. import state
 from .. import decorators
 from ..utils import ask_permission
+from .. import template
 
 from . import manager, sacred_manager, cluster
 
@@ -12,9 +13,11 @@ def clean():
         We do not delete any experiments, only move them to a temporal folder.
     """
 
+    tmpl = template.get_template()
+
     tmp_id = manager.make_and_get_tmp_delete_folder()
 
-    if state.use_mongo:
+    if tmpl['use_mongo']:
         ask_permission(
             'Sync local files with mongo?',
             lambda: None

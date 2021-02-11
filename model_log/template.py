@@ -28,7 +28,10 @@ _DEFAULT_TEMPLATE = {
     'bin_dir': 'bin_model_log',
     'local_config': 'experiment_config.yaml',
     'project_config': '../project_config.yaml',
-    'global_config': None
+    'global_config': None,
+    'result_name_fn': lambda config: '{name}_{_id}'.format(name=config['name'], _id=config['experiment_id']),
+    'results_metric_fn': lambda results: results['metrics'], 
+    'use_mongo': False
 }
 
 @dispatch.register('template', '')

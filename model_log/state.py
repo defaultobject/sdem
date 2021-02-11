@@ -1,5 +1,3 @@
-use_mongo=True
-
 verbose=False
 dry=False
 
