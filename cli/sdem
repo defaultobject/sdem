@@ -1,0 +1,4 @@
+import sdem
+from sdem import main
+
+main.main()

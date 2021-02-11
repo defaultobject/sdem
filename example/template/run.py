@@ -8,4 +8,4 @@ Path("results/").mkdir(exist_ok=True)
 Path("models/").mkdir(exist_ok=True)
 Path("models/runs").mkdir(exist_ok=True)
 
-main.run()
+main.main()

@@ -3,8 +3,8 @@ from sacred.observers import FileStorageObserver, MongoObserver
 
 import sys
 
-from . import manager
-from . import metrics
+#from . import manager
+#from . import metrics
 
 import inspect
 import os
@@ -44,6 +44,11 @@ class Experiment(SacredExperiment):
     def automain(self, function):
         """
         automain, copies the functionality of sacred automain. Will run the experiment using a specific input
+
+        when the file is run from command line we support the follow command line arguments:
+            int>=0: run specific config id [default = 0]
+            -1: run all experiment configs
+
         """
 
         #check if the function was run through the command line or imported

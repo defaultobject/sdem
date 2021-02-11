@@ -14,7 +14,7 @@ import gpflow
 
 import model_log
 from model_log import Experiment
-from model_log.util import read_yaml, get_all_permutations
+from model_log.utils import read_yaml, get_all_permutations
 
 import warnings
 warnings.simplefilter('always', UserWarning)
@@ -38,7 +38,7 @@ def get_config():
     #num_folds and split_type keys needed to load dataloader
     configs =  {
         'name': ['template'],
-        'fold': list(range(ex_config['NUM_FOLDS']))
+        'fold': list(range(5))
     }
 
     return get_all_permutations(configs)
