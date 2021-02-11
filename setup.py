@@ -3,7 +3,7 @@ import setuptools
 
 
 setuptools.setup(
-    name="sem", 
+    name="sdem", 
     version="0.0.1",
     author="O Hamelijnck",
     author_email="ohamelijnck@turing.ac.uk;",
@@ -18,5 +18,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    scripts=["cli/sem"]
+    scripts=["cli/sdem"]
 )
