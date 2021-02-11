@@ -25,6 +25,7 @@ def get_results_df(exp_root, metrics, name_fn, metric_fn=None):
 
     config_columns = None
     metric_columns = None
+    columns = None
 
     results_df = []
 
@@ -41,12 +42,13 @@ def get_results_df(exp_root, metrics, name_fn, metric_fn=None):
             if config_columns is None:
                 config_columns = list(config.keys())
                 metric_columns = list(metrics.keys())
+                columns = config_columns + metric_columns
 
-            results_df.append(
-                list(config.values()) + list(metrics.values())
-            )
+            row = list(config.values()) + list(metrics.values())
 
-    columns = config_columns + metric_columns
+            if len(row) == len(columns):
+                results_df.append(row)
+
 
     return pd.DataFrame(results_df, columns=columns)
 
