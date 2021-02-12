@@ -3,8 +3,8 @@ from sacred.observers import FileStorageObserver, MongoObserver
 
 import sys
 
-#from . import manager
-#from . import metrics
+from .computation import manager
+from .computation import metrics
 
 import inspect
 import os
