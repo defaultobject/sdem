@@ -53,6 +53,15 @@ def delete_id(folder_path, _id, tmp_folder_id):
 
     utils.move_dir_if_exists(folder_path, f"{bin_dir}/{tmp_folder_id}")
 
+def delete_result(f, name, tmp_folder_id):
+    if state.verbose:
+        logger.info(f'DELETING Result: {name}')
+
+    tmpl = template.get_template()
+    bin_dir = tmpl['bin_dir']
+
+    utils.move_dir_if_exists(f, f"{bin_dir}/{tmp_folder_id}")
+
 
 def order_experiment_folders_by_datetime(experiment_folders):
     runs_root = 'models/runs'
@@ -189,3 +198,31 @@ def prune_experiments(tmp_id):
                 logger.info(f'deleting {_id} because a newer run exists')
 
             delete_id(folder_path, _id, tmp_id)
+
+def prune_results(tmp_id):
+    """
+        Collects all configs
+        Creates all valid results file
+        Removes any result files that are not in this list
+
+    """
+    tmpl = template.get_template()
+    name_fn = tmpl['result_name_fn']
+    results_root = tmpl['results_files']
+
+    all_configs = manager.get_configs_from_model_files()
+    valid_results = [name_fn(config) for config in all_configs]
+
+    #append pickle
+    valid_results = [res+'.pickle' for res in valid_results]
+
+
+    results_folders = [f for f in os.listdir(results_root) if f.endswith('.pickle')]
+
+    for res in results_folders:
+        if res not in valid_results:
+            delete_result(results_root+'/'+res, res, tmp_id)
+
+
+
+

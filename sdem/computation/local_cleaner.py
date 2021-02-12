@@ -17,6 +17,7 @@ def clean():
 
     tmp_id = manager.make_and_get_tmp_delete_folder()
 
+
     if tmpl['use_mongo']:
         ask_permission(
             'Sync local files with mongo?',
@@ -28,7 +29,12 @@ def clean():
         lambda: sacred_manager.prune_experiments(tmp_id)
     )
 
-    if state.use_mongo:
+    ask_permission(
+        'Prune results files?',
+        lambda: sacred_manager.prune_results(tmp_id)
+    )
+
+    if tmpl['use_mongo']:
         ask_permission(
             'Re-sync local files with mongo?',
             lambda: None
