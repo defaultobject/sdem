@@ -25,6 +25,8 @@ def docker_run(configs_to_run, run_settings):
         if not(observer_flag):
             logger.info(f'Running without sacred observer')
 
+    observer_flag = int(run_settings['observer'])
+
     docker_config = state.experiment_config['docker']
     docker_run_command = docker.get_docker_run_command(docker_config)
 

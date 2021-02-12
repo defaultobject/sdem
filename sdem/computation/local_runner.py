@@ -23,6 +23,8 @@ def local_run(configs_to_run, run_settings):
     if state.verbose:
         if not(observer_flag):
             logger.info(f'Running without sacred observer')
+
+    observer_flag = int(run_settings['observer'])
             
 
     for exp in configs_to_run:
