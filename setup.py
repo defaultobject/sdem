@@ -4,7 +4,7 @@ import setuptools
 
 setuptools.setup(
     name="sdem", 
-    version="0.1.1",
+    version="0.2.0",
     author="O Hamelijnck",
     author_email="ohamelijnck@gmail.com",
     description="Sacred Experiment Manager",
