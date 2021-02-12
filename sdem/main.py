@@ -6,7 +6,9 @@ from . import template
 
 from .computation import startup
 
-from .cli import run, dvc, clean, vis, sync, setup, rollback
+from .cli import run, dvc, clean, vis, sync, setup, rollback, install
+
+commands_no_start_up_check = ['setup', 'install']
 
 app = typer.Typer()
 
@@ -16,6 +18,7 @@ app.command()(clean.clean)
 app.command()(sync.sync)
 app.command()(setup.setup)
 app.command()(rollback.rollback)
+app.command()(install.install)
 
 dvc_app = typer.Typer()
 app.add_typer(dvc.app, name="dvc")
@@ -36,7 +39,7 @@ def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
 
     #Ensure that model_log is running in the correct folder etc
     #   This is not required if setup is being called and so we simply check that the command is not setup
-    if ctx.invoked_subcommand != 'setup':
+    if not(ctx.invoked_subcommand in commands_no_start_up_check) :
         pass_flag = startup.check()
 
         if not pass_flag:
