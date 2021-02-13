@@ -2,7 +2,7 @@ import typer
 
 from .. import state
 from .. import dispatch
-from ..computation import manager, cluster
+from ..computation import manager, cluster, mongo
 
 def sync(location: str = typer.Option("local", help=state.help_texts['location'])):
     #load experiment configs and filter
@@ -27,6 +27,7 @@ def sync(location: str = typer.Option("local", help=state.help_texts['location']
 def local_sync(location):
     print('sync')
     #local_runner.local_run(configs_to_run, run_settings)
+    mongo.sync()
 
 @dispatch.register('sync', 'cluster')
 def cluster_sync(location):

@@ -19,14 +19,18 @@ host: localhost
 _SEML_CONFIG_PATH = '~/.config/seml/'
 _SEML_CONFIG_FILE = 'mongodb.config'
 
+def get_abs_path(f):
+    return os.path.abspath(os.path.expanduser(os.path.expandvars(f)))
+
 def check_if_self_config_exists():
-    return os.path.exists(_SEML_CONFIG_PATH+_SEML_CONFIG_FILE)
+    return os.path.exists(get_abs_path(_SEML_CONFIG_PATH+_SEML_CONFIG_FILE))
 
 def create_default_selm_config():
-    p = pathlib.Path(_SEML_CONFIG_PATH)
-    p.mkdir(parents=True, exist_ok=True)
+    p = pathlib.Path(get_abs_path(_SEML_CONFIG_PATH+_SEML_CONFIG_FILE))
+    p.parent.mkdir(parents=True, exist_ok=True)
 
-    (p / _SEML_CONFIG_FILE).write_text(_SEML_DEFAULT, encoding="utf-8")
+    with open(p, 'w') as f:
+        f.write(_SEML_DEFAULT) 
 
 def install():
     """
