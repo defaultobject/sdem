@@ -194,7 +194,30 @@ def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
     if dir_path is None:
         dir_path=''
 
+    print(os.walk(path))
+
     for root, dirs, files in os.walk(path):
+        for folder_name in dirs:
+            if ignore_dir_arr is not None:
+                ignore_flag = False
+                for ignore_dir in ignore_dir_arr:
+                    #if the root starts with ignore dir then we do not want to zip it
+                    if str(root).startswith(ignore_dir):
+                        ignore_flag = True
+                if ignore_flag:
+                    #do not zip this dir
+                    continue 
+
+            #remove leading directory structure
+            root_split = os.path.normpath(root).split(os.sep)
+            if dir_path:
+                target_dir = dir_path
+            else:
+                target_dir = os.path.join(*root_split[(len(path_split)-1):])
+
+            print(os.path.join(root, folder_name), ' -> ', os.path.join(target_dir, folder_name))
+            zipf.write(os.path.join(root, folder_name), os.path.join(target_dir, folder_name))
+
         for f in files:
             if ignore_dir_arr is not None:
                 ignore_flag = False

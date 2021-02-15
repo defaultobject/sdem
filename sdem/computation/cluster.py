@@ -178,6 +178,7 @@ def compress_files_for_cluster(configs_to_run, run_settings, experiment_name, cl
     utils.zip_dir(folder_to_move, zipf, ignore_dir_arr=folders_to_ignore)
 
     zipf.close()
+    exit()
 
 def move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
 
@@ -376,7 +377,7 @@ def sync_with_cluster(location):
     sync_files(experiment_name+'/models/', folder_origin, cluster_config)
 
     #fix sacred run ids
-    fix_run_ids(experiment_folder_name)
+    fix_run_ids(experiment_name)
 
     #clean up
     os.system('rm -rf cluster_temp')

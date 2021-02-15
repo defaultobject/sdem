@@ -17,7 +17,7 @@ import seml.queuing
 
 import slurmjobs
 from slurmjobs.args import NoArgVal
-import slurmjobs.util as util
+import slurmjobs.util as uti
 
 import shutil
 import zipfile
@@ -222,7 +222,5 @@ def prune_results(tmp_id):
     for res in results_folders:
         if res not in valid_results:
             delete_result(results_root+'/'+res, res, tmp_id)
-
-
 
 
