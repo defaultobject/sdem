@@ -131,7 +131,6 @@ def prune_unfinished(tmp_id):
             with open('{root}/{_id}/config.json'.format(root=runs_root, _id=_id)) as f:
                 d = json.load(f)
                 experiment_id = d['experiment_id']
-                fold_id = d['fold_id']
                 global_id = d['global_id']
 
             with open('{root}/{_id}/run.json'.format(root=runs_root, _id=_id)) as f:
@@ -139,7 +138,7 @@ def prune_unfinished(tmp_id):
                 status = d['status']
         except Exception as e:
             if state.verbose:
-                logger.info('Error getting experiment _id from experient run - ', _id)
+                logger.info(f'Error getting experiment _id from experient run - {_id}')
             delete_id(folder_path, _id, tmp_id)
             continue
             #raise e
@@ -148,7 +147,8 @@ def prune_unfinished(tmp_id):
             delete_id(folder_path, _id, tmp_id)
         else:
             if state.verbose:
-                logger.info('KEEPING: ', _id)
+                #logger.info(f'KEEPING: {_id}')
+                pass
 
 
 def prune_experiments(tmp_id):

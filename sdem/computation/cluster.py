@@ -45,7 +45,7 @@ CHECK_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=
 HERE"""
 
 SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e "ssh -i {key}" {remotehost}:{folder_dest} {folder_origin}'
-LOCAL_SYNC_SCRIPT = 'rsync -ra {folder_dest} {folder_origin}'
+LOCAL_SYNC_SCRIPT = 'mkdir -p {folder_origin} && rsync -ra {folder_dest} {folder_origin}'
 
 CLUSTER_ZIP = 'jobs/cluster.zip'
 
