@@ -45,8 +45,11 @@ CHECK_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=
 HERE"""
 
 SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e "ssh -i {key}" {remotehost}:{folder_dest} {folder_origin}'
+LOCAL_SYNC_SCRIPT = 'rsync -ra {folder_dest} {folder_origin}'
 
 CLUSTER_ZIP = 'jobs/cluster.zip'
+
+FOLDERS_TO_SYNC = ['jobs/', 'results/', 'models/runs/_sources']
 
 def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
     remotehost = '{user}@{host}'.format(user=cluster_config['user'], host=cluster_config['host'])
@@ -293,11 +296,28 @@ def sync_files(folders_to_sync, folder_origin, cluster_config):
     sync_script_f = SYNC_SCRIPT.format(key=cluster_config['key'], remotehost=remotehost, folder_dest=folders_to_sync, folder_origin=folder_origin)
     os.system(sync_script_f)
 
+def local_sync(folder_origin):
+    #sync files from cluster_tmp to experiment folders
+    folders_to_sync = FOLDERS_TO_SYNC
+
+    for folder in folders_to_sync:
+        _origin = folder_origin+folder
+        _dest = folder
+        if state.verbose:
+            print(f'local sync: {_origin} -> {_dest}')
+
+        _script = LOCAL_SYNC_SCRIPT.format(
+            folder_dest=_origin, 
+            folder_origin=_dest
+        )
+        os.system(_script)
+
 def get_folders_to_sync(experiment_name, cluster_config):
     #this does not sync models because that is delt with separetly so that the sacred ids can be fixed
 
+    folders_to_sync = FOLDERS_TO_SYNC
+
     #get list of folders that we need to sync from cluster
-    folders_to_sync = ['jobs/', 'results/', 'models/runs/_sources']
 
     if 'sync' in cluster_config.keys():
         folders_to_sync += cluster_config['sync']
@@ -350,7 +370,8 @@ def fix_run_ids(experiment_name):
 @decorators.run_if_not_dry
 def sync_with_cluster(location):
     """
-        Downloads 
+        We sync from the cluster to cluster_temp and then locally sync from cluster_temp to the experiment folders.
+        This is to get around the fact the experiment folder on the cluster may be prefixed.
     """
     experiment_config = state.experiment_config
     cluster_config = experiment_config[location]
@@ -367,10 +388,13 @@ def sync_with_cluster(location):
     #on the cluster the folder created may be prefixed, so we need the folder names
         #on the cluster and locally may not match up. hence sync to the local experiment
         #folder name
-    folders_to_sync = get_folders_to_sync(experiment_folder_name, cluster_config)
+    folders_to_sync = get_folders_to_sync(experiment_name, cluster_config)
 
-    #move files from cluster
-    sync_files(folders_to_sync, '.', cluster_config)
+
+    #move files from cluster into cluster_temp
+    sync_files(folders_to_sync, experiment_folder_name+'/cluster_temp/', cluster_config)
+    local_sync('cluster_temp/'+experiment_name+'/')
+    
 
     folder_origin = experiment_folder_name+'/cluster_temp/'
     sync_files(experiment_name+'/models/', folder_origin, cluster_config)

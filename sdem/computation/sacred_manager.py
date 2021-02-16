@@ -141,6 +141,7 @@ def prune_unfinished(tmp_id):
             if state.verbose:
                 logger.info('Error getting experiment _id from experient run - ', _id)
             delete_id(folder_path, _id, tmp_id)
+            continue
             #raise e
 
         if status != 'COMPLETED': 

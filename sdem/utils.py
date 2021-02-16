@@ -194,8 +194,6 @@ def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
     if dir_path is None:
         dir_path=''
 
-    print(os.walk(path))
-
     for root, dirs, files in os.walk(path):
         for folder_name in dirs:
             if ignore_dir_arr is not None:
@@ -215,7 +213,6 @@ def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
             else:
                 target_dir = os.path.join(*root_split[(len(path_split)-1):])
 
-            print(os.path.join(root, folder_name), ' -> ', os.path.join(target_dir, folder_name))
             zipf.write(os.path.join(root, folder_name), os.path.join(target_dir, folder_name))
 
         for f in files:
@@ -236,8 +233,6 @@ def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
             else:
                 target_dir = os.path.join(*root_split[(len(path_split)-1):])
 
-            #zipf.write(os.path.join(root, f))    
-            #print(os.path.join(target_dir, os.path.join(root, f)))
             zipf.write(os.path.join(root, f), os.path.join(target_dir, f))    
 
 def ensure_backslash(s):
