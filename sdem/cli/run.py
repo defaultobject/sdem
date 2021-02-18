@@ -11,9 +11,14 @@ def construct_filter(_filter, filter_file):
     filter_from_file = {}
     if filter_file is not None:
         #filter from file will overwrite filter_dict
+        #if a list of filters is defined in filter_file then filter_from_file will be a list of dictionaries
         filter_from_file = utils.json_from_file(filter_file)
 
-    filter_dict =  utils.add_dicts([filter_dict, filter_from_file])
+    if type(filter_from_file) == list:
+        for _f in filter_from_file:
+            filter_dict =  utils.add_dicts([filter_dict, _f])
+    else:
+        filter_dict =  utils.add_dicts([filter_dict, filter_from_file])
     return filter_dict
 
 def run(

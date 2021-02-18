@@ -17,7 +17,7 @@ def _get_last_checkpoints(d):
 
     return _flatten_dict(_d)
 
-def get_results_that_match_dict(_dict, exp_root, name_fn = None):
+def get_results_that_match_dict(_dict, exp_root, name_fn = None, squeeze=False):
     tmpl = template.get_template()
 
     if name_fn is None:
@@ -42,6 +42,13 @@ def get_results_that_match_dict(_dict, exp_root, name_fn = None):
 
                 results = pickle.load(open(results_path, "rb" ))
                 matched_results.append(results)
+
+    if squeeze:
+        if len(matched_results) == 1:
+            matched_results = matched_results[0]
+            matched_configs = matched_configs[0]
+        else:
+            logger.info('Cannot squeeze, too many results!')
 
     return matched_results, matched_configs
 
