@@ -25,8 +25,6 @@ def sync(location: str = typer.Option("local", help=state.help_texts['location']
 
 @dispatch.register('sync', 'local')
 def local_sync(location):
-    print('sync')
-    #local_runner.local_run(configs_to_run, run_settings)
     mongo.sync()
 
 @dispatch.register('sync', 'cluster')

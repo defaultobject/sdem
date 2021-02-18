@@ -1,12 +1,21 @@
 import os
 import pickle
-from ..computation import manager
+from ..computation import manager, sacred_manager
 from .. import utils, template
 import pandas as pd
+import json
+from loguru import logger
 
 def _flatten_dict(d):
     df =  pd.json_normalize(d, sep='_')
     return df.to_dict(orient='records')[0]
+
+def _get_last_checkpoints(d):
+    _d = {}
+    for key, item in d.items():
+        _d[key] = d[key]['values'][-1]
+
+    return _flatten_dict(_d)
 
 def get_results_that_match_dict(_dict, exp_root, name_fn = None):
     tmpl = template.get_template()
@@ -43,12 +52,11 @@ def index_of_match(elem, arr):
             return i
     return None
 
-def get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
+def _get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
     """
         Only works for pickle data
         Collects every results
     """
-
 
     tmpl = template.get_template()
 
@@ -66,11 +74,11 @@ def get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
     columns = []
     results_df = []
 
-
     for config in configs:
         config_results_name = name_fn(config)
 
         results_path = f'{exp_root}results/{config_results_name}.pickle'
+        run_path = f'{exp_root}models/runs/{run_id}/'
 
         if os.path.exists(results_path):
             results = pickle.load(open(results_path, "rb" ))
@@ -92,6 +100,69 @@ def get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
                 results_df.append([row])
             else:
                 results_df[config_index].append(row)
+
+
+    return [pd.DataFrame(results_df[i], columns=columns[i]) for i in range(len(columns))]
+
+def get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
+    """
+        Only works for pickle data
+        General Structure:
+            - Goes through every sacred run folder
+            - extracts config and metrics
+            - construct resuts file name from config
+            - load results
+            - Aggregates and return
+    """
+
+
+    tmpl = template.get_template()
+
+    if metric_fn is None:
+        metric_fn = tmpl['results_metric_fn']
+
+    if name_fn is None:
+        name_fn = tmpl['result_name_fn']
+
+    exp_root = utils.ensure_backslash(exp_root)
+
+    runs_root = exp_root+'/models/runs'
+    experiment_folders = sacred_manager.get_experiment_folders(runs_root)
+
+    #each config may have a different set of columns.metrics etc
+    columns = []
+    results_df = []
+
+    for run in experiment_folders:
+        #load config and metrics
+        with open(f'{runs_root}/{run}/config.json') as f:
+            config = json.load(f)
+
+        with open(f'{runs_root}/{run}/metrics.json') as f:
+            metrics = json.load(f)
+
+        if bool(metrics) == False:
+            #metrics is empty
+            logger.info(f'Skiping {run}')
+            continue
+
+        metrics = _get_last_checkpoints(metrics)
+
+        config_columns = list(config.keys())
+        metric_columns = list(metrics.keys())
+        column_names = config_columns + metric_columns
+
+        config_index = index_of_match(column_names, columns)
+
+        if config_index is None:
+            columns.append(column_names)
+
+        row = list(config.values()) + list(metrics.values())
+
+        if config_index is None:
+            results_df.append([row])
+        else:
+            results_df[config_index].append(row)
 
 
     return [pd.DataFrame(results_df[i], columns=columns[i]) for i in range(len(columns))]

@@ -25,8 +25,13 @@ def clean():
         )
 
     ask_permission(
-        'Prune experiment files and fix IDs?',
+        'Prune experiment files?',
         lambda: sacred_manager.prune_experiments(tmp_id)
+    )
+
+    ask_permission(
+        'Fix Run IDs?',
+        lambda: sacred_manager.fix_filestorage_ids()
     )
 
     ask_permission(

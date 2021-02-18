@@ -150,6 +150,8 @@ def prune_unfinished(tmp_id):
                 #logger.info(f'KEEPING: {_id}')
                 pass
 
+def get_experiment_folders(runs_root):
+    return [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
 
 def prune_experiments(tmp_id):
     """
@@ -225,3 +227,39 @@ def prune_results(tmp_id):
             delete_result(results_root+'/'+res, res, tmp_id)
 
 
+def fix_filestorage_ids():
+    """
+        Goes through the data twice, once to rename to a temp name to avoid conflict and then to rename to the correct format
+    """
+    experiment_config = state.experiment_config
+
+    tmpl = template.get_template()
+    runs_root = tmpl['scared_run_files']
+    
+    experiment_folders = [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
+    #sort experiments by filename and order_id so that the _ids are consistent 
+    experiment_folders = order_experiment_folders_by_datetime(experiment_folders)
+
+    to_change = []
+    for i, _id in enumerate(experiment_folders):
+        folder_path = runs_root+'/'+_id
+
+        _id = int(_id)
+        new_id = i+1
+
+        new_folder_path = runs_root+'/'+str(new_id)+'.tmp'
+
+        to_change.append(new_folder_path)
+
+        if state.verbose:
+            logger.info(f'Renaming: {folder_path} -> {new_folder_path}')
+        os.rename(folder_path, new_folder_path)
+
+    for _file in to_change:
+        new_folder_path = os.path.splitext(_file)[0]
+
+        if state.verbose:
+            logger.info(f'Renaming: {_file} -> {new_folder_path}')
+
+
+        os.rename(_file, new_folder_path)
