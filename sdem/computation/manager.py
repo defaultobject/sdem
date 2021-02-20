@@ -218,16 +218,19 @@ def filter_configs(experiment_configs, filter_dict):
     """
         removes configs from experiment_configs that do not match filter_dict
     """
-    if len(filter_dict.keys()) == 0:
+    if (type(filter_dict) == list and len(filter_dict) == 0) or (type(filter_dict) != list and len(filter_dict.keys()) == 0):
         #nothing to filter
         _experiment_configs = experiment_configs
     else:
+        if type(filter_dict) != list:
+            filter_dict = [filter_dict]
 
         _experiment_configs = []
-        for config in experiment_configs:
-            #check if config matches filter_dict
-            if utils.dict_is_subset(filter_dict, config):
-                _experiment_configs.append(config)
+        for _filter in filter_dict:
+            for config in experiment_configs:
+                #check if config matches filter_dict
+                if utils.dict_is_subset(_filter, config):
+                    _experiment_configs.append(config)
 
     if state.verbose:
         logger.info(utils._s('number of experiments before filter: ', len(experiment_configs), ' and after ', len(_experiment_configs)))

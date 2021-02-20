@@ -43,12 +43,15 @@ def get_results_that_match_dict(_dict, exp_root, name_fn = None, squeeze=False):
                 results = pickle.load(open(results_path, "rb" ))
                 matched_results.append(results)
 
+    if len(matched_results) == 0:
+        logger.info(f'No results found for {_dict}')
     if squeeze:
         if len(matched_results) == 1:
             matched_results = matched_results[0]
             matched_configs = matched_configs[0]
         else:
-            logger.info('Cannot squeeze, too many results!')
+            if len(matched_results) > 1:
+                logger.info('Cannot squeeze, too many results!')
 
     return matched_results, matched_configs
 
