@@ -1,5 +1,5 @@
 from sacred import Experiment as SacredExperiment
-from sacred.observers import FileStorageObserver, MongoObserver
+from sacred.observers import FileStorageObserver
 
 import sys
 
@@ -13,8 +13,11 @@ import os
 class Experiment(SacredExperiment):
     def __init__(self, name="exp"):
         caller_globals = inspect.stack()[1][0].f_globals
-        # sacred used inspect.stack() to see where the main function has been called from. This is annoying when trying to call an experiment from a different class.
-        # to get around this we check if the the experiment has been run from the command line. If not then we change the working dir to the experiments directory.
+        # sacred used inspect.stack() to see where the main function has been called from.
+        #   This is annoying when trying to call an experiment from a different class.
+        #   To get around this we check if the the experiment has been run from the command line.
+        #   If not then we change the working dir to the experiments directory.
+
         if caller_globals["__name__"] == "__main__":
             super(Experiment, self).__init__(name)
         else:
@@ -51,12 +54,13 @@ class Experiment(SacredExperiment):
         when the file is run from command line we support the follow command line arguments:
             int>=0: run specific config id [default = 0]
             -1: run all experiment configs
-
         """
 
         # check if the function was run through the command line or imported
         # if imported we do not run the experiments
-        captured = self.main(function)
+
+        # TODO: check if required
+        # captured = self.main(function)
         if function.__module__ != "__main__":
             return
 
