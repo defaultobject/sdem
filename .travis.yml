@@ -9,3 +9,9 @@ jobs:
       script:
         # Check black formatting would not make any chages
         - black --check */
+
+notifications:  
+  email:  
+    recipients:  
+    - ohamelijnck@gmail.com  
+    on_failure: always
