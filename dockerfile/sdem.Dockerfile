@@ -9,7 +9,7 @@ RUN pip3 install --upgrade pip
 
 COPY requirements.txt .
 COPY setup.py .
-COPY model_log/ model_log
+COPY sdem/ sdem
 
 #run requirements in order
 #required because scipy needs numpy to already be installed. see https://stackoverflow.com/questions/51399515/docker-cannot-build-scipy.
