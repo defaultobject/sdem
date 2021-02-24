@@ -6,9 +6,6 @@ cache: pip
 jobs:
   include:
     - name: "code_style_formatting"
-      install:
-        - pip install -r containers/requirements.txt
-
       script:
         # Check black formatting would not make any chages
         - black --check */
