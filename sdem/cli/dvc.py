@@ -8,12 +8,13 @@ app = typer.Typer()
 
 import os
 
+
 def save_to_storage():
     tmpl = template.get_template()
 
-    results_root = tmpl['results_files']
-    runs_root = tmpl['scared_run_files']
-    model_dir = tmpl['model_dir']
+    results_root = tmpl["results_files"]
+    runs_root = tmpl["scared_run_files"]
+    model_dir = tmpl["model_dir"]
 
     script = f"""
         dvc add {results_root}
@@ -25,11 +26,12 @@ def save_to_storage():
     """
     os.system(script)
 
-    logger.info('REMEMBER TO GIT PUSH!')
+    logger.info("REMEMBER TO GIT PUSH!")
+
 
 def get_from_storage():
     tmpl = template.get_template()
-    model_dir = tmpl['model_dir']
+    model_dir = tmpl["model_dir"]
 
     script = f"""
         dvc pull results.dvc
@@ -37,11 +39,12 @@ def get_from_storage():
     """
     os.system(script)
 
-@app.command('push')
+
+@app.command("push")
 def dvc_push():
     save_to_storage()
 
-@app.command('pull')
+
+@app.command("pull")
 def dvc_pull():
     get_from_storage()
-

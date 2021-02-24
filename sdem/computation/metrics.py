@@ -1,8 +1,11 @@
 from sklearn import metrics
 import numpy as np
 
-def log_regression_scalar_metrics(ex, X, Y, prediction_fn, var_flag=True, log=True, prefix=None):
-    
+
+def log_regression_scalar_metrics(
+    ex, X, Y, prediction_fn, var_flag=True, log=True, prefix=None
+):
+
     if var_flag:
         pred_Y, pred_Var = prediction_fn(X)
         pred = [pred_Y, pred_Var]
@@ -12,7 +15,7 @@ def log_regression_scalar_metrics(ex, X, Y, prediction_fn, var_flag=True, log=Tr
 
     true_Y = Y
 
-    #fix shapes
+    # fix shapes
 
     N = true_Y.shape[0]
 
@@ -23,19 +26,19 @@ def log_regression_scalar_metrics(ex, X, Y, prediction_fn, var_flag=True, log=Tr
     true_Y = true_Y.reshape([N])
     pred_Y = pred_Y.reshape([N])
 
-    #remove any nans
+    # remove any nans
 
     non_nan_idx = np.logical_not(np.isnan(true_Y))
 
     true_Y = true_Y[non_nan_idx]
     pred_Y = pred_Y[non_nan_idx]
 
-    #log metrics
+    # log metrics
     metric_fns = {
-        'mae': metrics.mean_absolute_error,
-        'mse': metrics.mean_squared_error,
-        'rmse': lambda true, pred: np.sqrt(metrics.mean_squared_error(true, pred)),
-        'r2_score': metrics.r2_score,
+        "mae": metrics.mean_absolute_error,
+        "mse": metrics.mean_squared_error,
+        "rmse": lambda true, pred: np.sqrt(metrics.mean_squared_error(true, pred)),
+        "r2_score": metrics.r2_score,
     }
 
     metrics_results = {}
@@ -46,7 +49,7 @@ def log_regression_scalar_metrics(ex, X, Y, prediction_fn, var_flag=True, log=Tr
             if prefix is None:
                 name = k
             else:
-                name = '{prefix}_{metric}'.format(prefix=prefix, metric=k)
+                name = "{prefix}_{metric}".format(prefix=prefix, metric=k)
 
             ex.log_scalar(name, metrics_results[k])
 
