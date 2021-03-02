@@ -5,6 +5,8 @@ from .. import utils, template
 import pandas as pd
 import json
 from loguru import logger
+import typing
+import numpy as np
 
 
 def _flatten_dict(d):
@@ -122,7 +124,7 @@ def _get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
     ]
 
 
-def get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
+def get_results_df(exp_root, name_fn=None, metric_fn=None):
     """
     Only works for pickle data
     General Structure:
@@ -186,23 +188,77 @@ def get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
     ]
 
 
+def flatten_and_rename_columns(df):
+    flattened_columns = df.columns.to_flat_index()
+    renamed_columns = []
+    for t in flattened_columns:
+        renamed_columns.append('_'.join(t))
+    df.columns = renamed_columns
+    return df
+
+def filter_dataframe_by_dict(df, d):
+    dict_df = pd.DataFrame.from_dict(d)
+
+    df = pd.merge(df, dict_df, how='outer', on=list(dict_df.columns), indicator=True)
+    df = df.query('_merge != "both"')
+
+    return df.drop('_merge', axis=1)
+
+def filter_results(ordered_df, drop_by):
+    #get all combinations of drop_by dictionaries
+    _filters = []
+    for d in drop_by:
+        _filters.append(utils.get_all_permutations(d))
+
+    _df = ordered_df
+    for d in _filters:
+        _df = filter_dataframe_by_dict(_df, d)
+
+    return _df
+
+def select_dataframe_by_dict(df, d):
+    dict_df = pd.DataFrame.from_dict(d)
+
+    df = pd.merge(df, dict_df, how='inner', on=list(dict_df.columns))
+
+    return df
+
+def select_results(ordered_df, selected_by):
+    """Filter ordered_df by selected rows that match selected_by."""
+    #get all combinations of selected_by dictionaries
+    _filters = []
+    for d in selected_by:
+        _filters.append(utils.get_all_permutations(d))
+
+    #a list of filters acts and as OR
+    df_arr = []
+    for d in _filters:
+        _df = select_dataframe_by_dict(ordered_df, d)
+        df_arr.append(_df)
+
+    return pd.concat(df_arr, axis=0)
+
+def combine_mean_std(row, metric, decimal_places):
+    m_avg = row[f'{metric}_mean']
+    m_std = row[f'{metric}_std']
+    testing_m_avg = ("{:."+str(decimal_places)+"f}").format(m_avg)
+    testing_m_std = ("{:."+str(decimal_places)+"f}").format(m_std)
+
+    val = '{avg} $\pm$ {std}'.format(avg=testing_m_avg, std=testing_m_std)
+    return val
+
+
 def get_ordered_table(
-    experiment_name,
-    metrics,
-    group_by,
-    results_by,
-    num_folds=1,
-    name_column="experiment_id",
-    groups_order=None,
-    results_order=None,
-    groups_name_fn=None,
-    results_name_fn=None,
+    exp_root,
+    metrics: typing.List[str],
+    group_by: typing.Optional[typing.List[str]] = None,
     decimal_places=2,
-    folds=None,
-    return_raw=False,
-    drop=None,
-    drop_mean_std=True,
-    metric_scale=None,
+    select_filter: typing.Optional[typing.List[dict]] = None,
+    drop_filter: typing.Optional[typing.List[dict]] = None,
+    combine=False,
+    flatten=False,
+    name_fn=None,
+    metric_fn=None
 ):
     """
     Args:
@@ -216,4 +272,50 @@ def get_ordered_table(
         drop: array of dictionaries to drop results by
 
     """
-    pass
+
+    all_results_df = get_results_df(exp_root, name_fn=name_fn, metric_fn=metric_fn)
+    
+    ordered_dfs =[]
+    for results_df in all_results_df:
+        #create agg_dict
+        agg_dict = {}
+        for m in metrics:
+            agg_dict[m] = ['mean', 'std']
+
+        if group_by is not None:
+            #ensure that none of the group by columns are unhashable
+            for g in group_by:
+                if results_df[g].apply(pd.api.types.is_hashable).all() == False:
+                    #g is not hashable
+                    results_df[g] = results_df[g].apply(str)
+
+            _ordered_df = results_df.groupby(group_by).agg(agg_dict)
+
+        else:
+            _ordered_df = results_df
+
+        ordered_dfs.append(_ordered_df)
+
+    if combine:
+        ordered_df = pd.concat(ordered_dfs, axis=0)
+
+        if flatten:
+            ordered_df = flatten_and_rename_columns(ordered_df)
+            ordered_df.reset_index(level=ordered_df.index.names, inplace=True)
+
+            if drop_filter:
+                ordered_df = filter_results(ordered_df, drop_filter)
+
+            if select_filter:
+                ordered_df = select_results(ordered_df, select_filter)
+
+            for m in metrics:
+                ordered_df[f'{m}_score'] = ordered_df.apply(lambda row: combine_mean_std(row, m, decimal_places), axis=1)
+                ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std'], axis=1)
+            
+        return ordered_df
+    else:
+        for ordered_df in ordered_dfs:
+            print(ordered_df)
+
+    return None

@@ -7,6 +7,8 @@ from .. import template
 
 from . import manager, sacred_manager, cluster
 
+import os
+
 
 @decorators.run_if_not_dry
 def clean():

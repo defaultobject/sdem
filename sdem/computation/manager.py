@@ -199,12 +199,17 @@ def get_configs_from_model_files(model_root=None):
 
     experiment_config_arr = []
 
+
+
     set_custom_import()
 
     for experiment in experiment_files:
 
         if state.verbose:
             logger.info(f"Loading configs from {experiment}")
+
+
+
 
         # logger does not exit when it catches an execption, just prints it
         @logger.catch
@@ -220,9 +225,17 @@ def get_configs_from_model_files(model_root=None):
                 )
                 experiment_config_arr.append(config)
 
+        #store here so we can revert
+        cwd = os.getcwd()
+
         load()
 
+        # revert back to orginal working directory
+        os.chdir(cwd)
+
     reset_import()
+
+
 
     return experiment_config_arr
 

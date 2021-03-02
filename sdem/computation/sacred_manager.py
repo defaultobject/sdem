@@ -248,6 +248,10 @@ def fix_filestorage_ids():
     tmpl = template.get_template()
     runs_root = tmpl["scared_run_files"]
 
+    if not(os.path.exists(runs_root)):
+        logger.info(f'Folder {runs_root} does not seem to exist - current working dir is {os.getcwd()}!')
+        return
+
     experiment_folders = [
         folder for folder in os.listdir(runs_root) if folder.isnumeric()
     ]
