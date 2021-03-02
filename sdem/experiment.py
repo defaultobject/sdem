@@ -1,6 +1,13 @@
+"""
+Defines Experiment class instatiated in all experiment files.
+
+This wraps around a SacredExperiment and provides additional functionality such as:
+    - run a specific config
+    - run all configs
+    - support for running from sdem
+"""
 from sacred import Experiment as SacredExperiment
 from sacred.observers import FileStorageObserver
-
 import sys
 
 from .computation import manager
@@ -11,7 +18,12 @@ import os
 
 
 class Experiment(SacredExperiment):
+    """Wrapper around ScaredExperiment."""
+
     def __init__(self, name="exp"):
+        """
+            
+        """
         caller_globals = inspect.stack()[1][0].f_globals
         # sacred used inspect.stack() to see where the main function has been called from.
         #   This is annoying when trying to call an experiment from a different class.
