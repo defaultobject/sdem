@@ -252,13 +252,15 @@ def get_ordered_table(
     exp_root,
     metrics: typing.List[str],
     group_by: typing.Optional[typing.List[str]] = None,
+    results_by = None,
     decimal_places=2,
     select_filter: typing.Optional[typing.List[dict]] = None,
     drop_filter: typing.Optional[typing.List[dict]] = None,
     combine=False,
     flatten=False,
     name_fn=None,
-    metric_fn=None
+    metric_fn=None,
+    scale: typing.Optional[dict]=None
 ):
     """
     Args:
@@ -272,6 +274,12 @@ def get_ordered_table(
         drop: array of dictionaries to drop results by
 
     """
+
+    if results_by:
+        if group_by:
+            group_by = group_by + results_by
+        else:
+            group_by = results_by
 
     all_results_df = get_results_df(exp_root, name_fn=name_fn, metric_fn=metric_fn)
     
@@ -289,6 +297,11 @@ def get_ordered_table(
                     #g is not hashable
                     results_df[g] = results_df[g].apply(str)
 
+            if scale is not None:
+                for m in metrics:
+                    if m in scale.keys():
+                        results_df[m] = results_df[m]*scale[m]
+
             _ordered_df = results_df.groupby(group_by).agg(agg_dict)
 
         else:
@@ -299,7 +312,13 @@ def get_ordered_table(
     if combine:
         ordered_df = pd.concat(ordered_dfs, axis=0)
 
+        if results_by:
+            #ordered_df = ordered_df.unstack(level=results_by)
+            #print(ordered_df)
+            pass
+
         if flatten:
+
             ordered_df = flatten_and_rename_columns(ordered_df)
             ordered_df.reset_index(level=ordered_df.index.names, inplace=True)
 
@@ -312,6 +331,8 @@ def get_ordered_table(
             for m in metrics:
                 ordered_df[f'{m}_score'] = ordered_df.apply(lambda row: combine_mean_std(row, m, decimal_places), axis=1)
                 ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std'], axis=1)
+
+
             
         return ordered_df
     else:
