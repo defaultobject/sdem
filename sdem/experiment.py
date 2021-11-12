@@ -1,6 +1,8 @@
 from sacred import Experiment as SacredExperiment
 from sacred.observers import FileStorageObserver
 
+import argparse
+
 import sys
 
 from .computation import manager
@@ -40,6 +42,8 @@ class Experiment(SacredExperiment):
 
         self.add_config(config)
         captured_function = self.main(lambda: function(config))
+
+        #call sacred run method
         self.run(captured_function.__name__)
 
     def log_metrics(self, X, Y, prediction_fn, var_flag=True, log=True, prefix=None):
@@ -69,16 +73,13 @@ class Experiment(SacredExperiment):
 
         filename = inspect.getfile(function)
 
-        use_observer = True
-        i = 0
-        if len(sys.argv) == 2:
-            i = int(sys.argv[1])
+        parser = argparse.ArgumentParser()
+        parser.add_argument('i', type=int, help='Experiment id to run')
+        parser.add_argument('--dry', action='store_true', default=False, help='Dry run without observer')
+        input_args = parser.parse_args()
 
-        if len(sys.argv) == 3:
-            i = int(sys.argv[1])
-            flag = int(sys.argv[2])
-
-            use_observer = flag
+        use_observer = not(input_args.dry)
+        i = input_args.i
 
         configs = self.config_function()
 

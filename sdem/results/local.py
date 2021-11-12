@@ -285,6 +285,7 @@ def get_ordered_table(
     
     ordered_dfs =[]
     for results_df in all_results_df:
+        print(results_df.keys())
         #create agg_dict
         agg_dict = {}
         for m in metrics:

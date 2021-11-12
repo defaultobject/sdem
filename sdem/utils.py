@@ -131,7 +131,8 @@ def dict_is_subset(dict1, dict2):
             if type(dict2[k]) is list:
                 # matching lists
                 if dict2[k] == dict1[k]:
-                    continue
+                    is_subset = False
+                    break
 
             else:
                 # loop through dict1 and check if any match

@@ -6,8 +6,6 @@ from . import docker
 
 import os
 
-RUN_COMMAND = "cd models; python {name} {order} {observer}"
-
 
 @decorators.run_if_not_dry
 def docker_run(configs_to_run, run_settings):
@@ -38,7 +36,7 @@ def docker_run(configs_to_run, run_settings):
         if state.verbose:
             logger.info(f"Running experiment {name} {order_id}")
 
-        run_command = RUN_COMMAND.format(
+        run_command = state.DOCKER_RUN_COMMAND.format(
             name=name, order=order_id, observer=observer_flag
         )
         run_command = "cd /home/app; " + run_command
