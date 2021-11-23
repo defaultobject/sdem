@@ -196,10 +196,17 @@ def read_yaml(file_name):
 
 
 def get_all_permutations(options):
-    # get all permutations of options
-    keys, values = zip(*options.items())
-    permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
-    return permutations_dicts
+    if type(options) is list:
+        dict_list = []
+        for opt in options:
+            dict_list = dict_list + get_all_permutations(opt)
+
+        return dict_list
+    else:
+        # get all permutations of options
+        keys, values = zip(*options.items())
+        permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
+        return permutations_dicts
 
 
 def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):

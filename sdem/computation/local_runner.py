@@ -25,7 +25,10 @@ def local_run(configs_to_run, run_settings):
         if not (observer_flag):
             logger.info(f"Running without sacred observer")
 
-    observer_flag = int(run_settings["observer"])
+    if observer_flag:
+        observer_flag = ''
+    else:
+        observer_flag = '--dry'
 
     for exp in configs_to_run:
         name = exp["filename"]

@@ -10,6 +10,8 @@ from .. import template
 from .. import utils
 from .. import state
 
+from ..results.local import get_run_configs
+
 old_imp = builtins.__import__
 
 
@@ -245,7 +247,7 @@ def get_valid_experiment_ids():
     return [c["experiment_id"] for c in configs]
 
 
-def filter_configs(experiment_configs, filter_dict):
+def filter_configs(experiment_configs, filter_dict, run_new_only):
     """
     removes configs from experiment_configs that do not match filter_dict
     """
@@ -264,6 +266,24 @@ def filter_configs(experiment_configs, filter_dict):
                 # check if config matches filter_dict
                 if utils.dict_is_subset(_filter, config):
                     _experiment_configs.append(config)
+
+    if run_new_only:
+        # go through each config and check if a run exists for it
+
+        # load all configs that have been run
+        run_configs = get_run_configs(exp_root = './')
+
+        # extract global ids
+        run_experiment_ids = [config['experiment_id'] for config in run_configs]
+
+        tmp = []
+
+        for config in _experiment_configs:
+            if config['experiment_id'] not in run_experiment_ids:
+                tmp.append(config)
+
+        _experiment_configs = tmp
+
 
     if state.verbose:
         logger.info(

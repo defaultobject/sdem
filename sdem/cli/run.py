@@ -29,6 +29,7 @@ def construct_filter(_filter, filter_file):
 def run(
     location: str = typer.Option("local", help=state.help_texts["location"]),
     force_all: bool = typer.Option(True, help=state.help_texts["force_all"]),
+    new_only: bool = typer.Option(True, help='Only run experiment that have no results'),
     observer: bool = typer.Option(True, help=state.help_texts["observer"]),
     filter: str = typer.Option("{}", help=state.help_texts["filter"]),
     filter_file: str = typer.Option(None, help=state.help_texts["filter_file"]),
@@ -49,7 +50,7 @@ def run(
 
     # load experiment configs and filter
     configs_to_run = manager.get_configs_from_model_files()
-    configs_to_run = manager.filter_configs(configs_to_run, filter_dict)
+    configs_to_run = manager.filter_configs(configs_to_run, filter_dict, new_only)
 
     experiment_config = state.experiment_config
 

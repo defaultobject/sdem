@@ -74,7 +74,7 @@ class Experiment(SacredExperiment):
         filename = inspect.getfile(function)
 
         parser = argparse.ArgumentParser()
-        parser.add_argument('i', type=int, help='Experiment id to run')
+        parser.add_argument('i', type=int, default=-1, help='Experiment id to run')
         parser.add_argument('--dry', action='store_true', default=False, help='Dry run without observer')
         input_args = parser.parse_args()
 

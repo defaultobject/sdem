@@ -7,6 +7,7 @@ import json
 from loguru import logger
 import typing
 import numpy as np
+from pathlib import Path
 
 
 def _flatten_dict(d):
@@ -68,6 +69,20 @@ def index_of_match(elem, arr):
         if elem == a:
             return i
     return None
+
+def get_run_configs(exp_root):
+    runs_root = str(Path(exp_root) / 'models' / 'runs')
+    experiment_folders = sacred_manager.get_experiment_folders(runs_root)
+    config_list = []
+    for run in experiment_folders:
+        # load config and metrics
+        with open(f"{runs_root}/{run}/config.json") as f:
+            config = json.load(f)
+        config_list.append(config)
+
+    return config_list
+
+
 
 
 def _get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
