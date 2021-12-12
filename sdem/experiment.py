@@ -1,3 +1,4 @@
+""" Wrapper around SacredExperiment. """
 from sacred import Experiment as SacredExperiment
 from sacred.observers import FileStorageObserver
 
@@ -17,7 +18,7 @@ class Experiment(SacredExperiment):
     def __init__(self, name="exp"):
         caller_globals = inspect.stack()[1][0].f_globals
         # sacred used inspect.stack() to see where the main function has been called from.
-        #   This is annoying when trying to call an experiment from a different class.
+        #   This is awkward when trying to call an experiment from a different class.
         #   To get around this we check if the the experiment has been run from the command line.
         #   If not then we change the working dir to the experiments directory.
 
