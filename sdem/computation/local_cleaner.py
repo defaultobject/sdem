@@ -10,11 +10,12 @@ from . import manager, sacred_manager, cluster
 import os
 
 
-@decorators.run_if_not_dry
-def clean():
+def clean(experiment_config):
     """
     We do not delete any experiments, only move them to a temporal folder.
     """
+
+    breakpoint()
 
     tmpl = template.get_template()
 

@@ -3,25 +3,24 @@ import typer
 from .. import state
 from .. import dispatch
 
-from ..computation import local_cleaner, cluster
+from ..computation import local_cleaner, cluster, manager
 
 
 def clean(
     location: str = typer.Option("local", help=state.help_texts["location"]),
 ):
+    experiment_config = state.experiment_config
 
-    if location == "local":
-        clean_local(location)
-    else:
-        experiment_config = state.experiment_config
-        location_type = experiment_config[location]["type"]
-        if location_type == "cluster":
-            clean_cluster(location)
+    if state.dry == False:
+        fn = manager.get_dispatched_fn('clean', location, experiment_config)
+        fn(experiment_config, location)
 
 
-def clean_local(location):
-    local_cleaner.clean()
+@dispatch.register("clean", "local")
+def clean_local(experiment_config, location):
+    local_cleaner.clean(experiment_config)
 
 
-def clean_cluster(location):
-    cluster.clean_up_cluster(location)
+@dispatch.register("clean", "cluster")
+def clean_cluster(experiment_config, location):
+    cluster.clean_up_cluster(location, experiment_config)
