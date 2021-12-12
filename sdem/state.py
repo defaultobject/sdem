@@ -11,4 +11,4 @@ help_texts = {
 
 experiment_config = {}
 
-DOCKER_RUN_COMMAND = "cd models; python {name} {order} {observer}"
+DOCKER_RUN_COMMAND = "cd models; python {name} {order}"

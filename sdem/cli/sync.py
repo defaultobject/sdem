@@ -2,7 +2,7 @@ import typer
 
 from .. import state
 from .. import dispatch
-from ..computation import manager, cluster, mongo
+from ..computation import manager, cluster, mongo, server
 
 
 def sync(location: str = typer.Option("local", help=state.help_texts["location"])):
@@ -13,6 +13,8 @@ def sync(location: str = typer.Option("local", help=state.help_texts["location"]
     if location in experiment_config.keys():
         if experiment_config[location]["type"] == "cluster":
             fn = dispatch.dispatch("sync", "cluster")
+        elif experiment_config[location]["type"] == "server":
+            fn = dispatch.dispatch("sync", "server")
         else:
             # get relevant run function
             fn = dispatch.dispatch("sync", location)
@@ -32,3 +34,7 @@ def local_sync(location):
 @dispatch.register("sync", "cluster")
 def cluster_sync(location):
     cluster.sync_with_cluster(location)
+
+@dispatch.register("sync", "server")
+def cluster_sync(location):
+    server.sync(location)

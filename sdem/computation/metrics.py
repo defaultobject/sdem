@@ -22,7 +22,6 @@ def log_regression_scalar_metrics(
     true_Y = np.array(true_Y)
     pred_Y = np.array(pred_Y)
 
-    print(pred_Y)
     true_Y = true_Y.reshape([N])
     pred_Y = pred_Y.reshape([N])
 

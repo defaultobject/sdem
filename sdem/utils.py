@@ -15,6 +15,8 @@ from loguru import logger
 import typing
 import zipfile
 
+import pickle
+
 YES_LIST = ("yes", "true", "t", "y", "1")
 NO_LIST = ("no", "false", "f", "n", "0")
 
@@ -25,6 +27,14 @@ def _s(*args) -> str:
     """
     s_arr = [str(s) for s in args]
     return "".join(s_arr)
+
+def save_to_pickle(data, name):
+    """ Save data to a pickle under the file path name"""
+    with open(name, 'wb') as file:
+        pickle.dump(data, file)
+
+def read_pickle():
+    pass
 
 
 def str_to_bool(v: str) -> bool:

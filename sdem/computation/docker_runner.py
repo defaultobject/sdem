@@ -44,4 +44,6 @@ def docker_run(configs_to_run, run_settings):
         run_exp_command = f' /bin/bash -c  "{run_command}"'
         run_command = docker_run_command + run_exp_command
 
+        print(run_command)
+
         os.system(run_command)
