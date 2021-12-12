@@ -1,3 +1,4 @@
+""" Entry point to the sdem cli.  """
 import typer
 from loguru import logger
 
@@ -12,7 +13,7 @@ commands_no_start_up_check = ["setup", "install"]
 
 app = typer.Typer()
 
-# add run command directly to app
+# Construct cli from subfiles
 app.command()(run.run)
 app.command()(clean.clean)
 app.command()(sync.sync)
@@ -29,6 +30,10 @@ app.add_typer(vis.app, name="vis")
 
 @app.callback()
 def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
+    """
+    This function will be run before every cli function
+    It sets up the current state and sets global settings.
+    """
     if verbose:
         # logger.info("Will write verbose output")
         state.verbose = True
