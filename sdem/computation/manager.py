@@ -251,8 +251,8 @@ def get_configs_from_model_files(experiment_config: dict, model_root=None) -> Li
     return experiment_config_arr
 
 
-def get_valid_experiment_ids():
-    configs = get_configs_from_model_files()
+def get_valid_experiment_ids(experiment_config):
+    configs = get_configs_from_model_files(experiment_config)
     return [c["experiment_id"] for c in configs]
 
 
@@ -390,3 +390,8 @@ def get_dispatched_fn(group: str, location: str, experiment_config: dict):
             raise RuntimeError(f'No {group} function found for location {location}')
 
     return fn
+
+def get_sacred_runs_path(experiment_config) -> Path:
+    return Path(
+        experiment_config['template']['folder_structure']['scared_run_files']
+    )

@@ -55,44 +55,50 @@ def delete_result(f, name, tmp_folder_id):
     utils.move_dir_if_exists(f, f"{bin_dir}/{tmp_folder_id}")
 
 
-def order_experiment_folders_by_datetime(experiment_folders):
-    runs_root = "models/runs"
+def order_experiment_folders_by_datetime(runs_root: Path, experiment_folders:list) -> list:
+    """ Return experiments from run_roots ordered by experiment start_time. """
+
+    # Get experiments from run_roots
     sort_array = []
     for _id in experiment_folders:
-        folder_path = runs_root + "/" + _id
+        folder_path = runs_root / _id
+
         try:
-            with open("{root}/{_id}/run.json".format(root=runs_root, _id=_id)) as f:
+            with open(folder_path / "run.json") as f:
                 d = json.load(f)
                 start_time = dateutil.parser.parse(d["start_time"])
         except Exception as e:
             logger.info(
-                "Error getting experiment start_time from experient run - ", _id
+                "Error getting experiment start_time from experient run - {_id}"
             )
             raise e
 
         sort_array.append([start_time])
 
+    # Sort experiments by start time
     if len(sort_array) > 0:
         sort_args = np.argsort(sort_array, axis=0)[:, 0]
         return [experiment_folders[s] for s in sort_args]
 
+    # Return empty list if nothing to sort
     return []
 
 
-def get_experiment_ids_from_folders(experiment_folders):
-    runs_root = "models/runs"
+def get_experiment_ids_from_folders(runs_root: Path, experiment_folders: list) -> list:
+    """ For each sacred experiment get the corresponding (unique) sdem experiment_id from the config file. """
     experiment_ids = []
     for _id in experiment_folders:
-        folder_path = runs_root + "/" + _id
+        folder_path = runs_root / _id
 
         _id = int(_id)
+
         # get experiment+id
         try:
-            with open("{root}/{_id}/config.json".format(root=runs_root, _id=_id)) as f:
+            with open(folder_path / "config.json") as f:
                 d = json.load(f)
                 experiment_id = d["experiment_id"]
         except Exception as e:
-            logger.info("Error getting experiment _id from experient run - ", _id)
+            logger.info(f"Error getting experiment _id from experient run - {_id}")
             raise e
 
         experiment_ids.append(experiment_id)
@@ -114,49 +120,43 @@ def delete_empty_experiments(runs_root: Path, experiment_folders: list, bin_path
 
 
 def prune_unfinished(bin_path: Path, experiment_config: dict):
+    """
+    Go through every experiment and move to bin_path if:
+        - the experiment folder is empty 
+        - the status of the sacred experiment is not Completed
+    """
     # Get sacred run root
-    runs_root = Path(
-        experiment_config['template']['folder_structure']['scared_run_files']
-    )
+    runs_root = manager.get_sacred_runs_path(experiment_config)
 
     # Load all sacred runs
     experiment_folders = get_sacred_experiment_folders(runs_root) 
 
     # Delete empty experiment folders
     experiment_folders = delete_empty_experiments(runs_root, experiment_folders, bin_path)
-
-    breakpoint()
-
-    all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)
+    all_experiment_ids = get_experiment_ids_from_folders(runs_root, experiment_folders)
 
     for i, _id in enumerate(experiment_folders):
-        folder_path = runs_root + "/" + _id
+        folder_path = runs_root / _id
 
         _id = int(_id)
-        # get experiment+id
         try:
-            with open("{root}/{_id}/config.json".format(root=runs_root, _id=_id)) as f:
+            with open(folder_path / "config.json") as f:
                 d = json.load(f)
                 experiment_id = d["experiment_id"]
                 global_id = d["global_id"]
 
-            with open("{root}/{_id}/run.json".format(root=runs_root, _id=_id)) as f:
+            with open(folder_path / "run.json") as f:
                 d = json.load(f)
                 status = d["status"]
         except Exception as e:
             if state.verbose:
                 logger.info(f"Error getting experiment _id from experient run - {_id}")
-            delete_id(folder_path, _id, tmp_id)
+
+            delete_id(folder_path, bin_path)
             continue
-            # raise e
 
         if status != "COMPLETED":
-            delete_id(folder_path, _id, tmp_id)
-        else:
-            if state.verbose:
-                # logger.info(f'KEEPING: {_id}')
-                pass
-
+            delete_id(folder_path, bin_path)
 
 def get_sacred_experiment_folders(runs_root):
     return [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
@@ -165,52 +165,55 @@ def get_sacred_experiment_folders(runs_root):
 def prune_experiments(bin_path: Path, experiment_config:dict):
     """
     Removes all local experiment folders that do not have a valid config id and removes all but the last of each config_id
+
+    If multiple experiments run have the SAME start_time with the same experiment_id then it is not guarrenteed which one will be deleted and which will be saved. 
     """
 
+    # First remove all experiments that have not finished running 
+    #   i.e they are empty or their status !- COMPLETED
     prune_unfinished(bin_path, experiment_config)
 
-    experiment_config = state.experiment_config
-
-    tmpl = template.get_template()
-    runs_root = tmpl["scared_run_files"]
-
-    experiment_folders = [
-        folder for folder in os.listdir(runs_root) if folder.isnumeric()
-    ]
+    # Load all sacred runs
+    runs_root = manager.get_sacred_runs_path(experiment_config)
+    experiment_folders = get_sacred_experiment_folders(runs_root) 
 
     # experiment ids ordered by date
-    experiment_folders = order_experiment_folders_by_datetime(experiment_folders)
-    all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)
+    experiment_folders = order_experiment_folders_by_datetime(runs_root, experiment_folders)
+    all_experiment_ids = get_experiment_ids_from_folders(runs_root, experiment_folders)
 
-    valid_experiment_ids = manager.get_valid_experiment_ids()
+    # Get all experiments_ids from configs
+    valid_experiment_ids = manager.get_valid_experiment_ids(experiment_config)
 
+    # Remove experiments that do not have a valid id and have been run multiple times, 
+    #   saving only the most recent one
     for i, _id in enumerate(experiment_folders):
-        folder_path = runs_root + "/" + _id
-
+        folder_path = runs_root / _id
         _id = int(_id)
-        # get experiment+id
+
         try:
-            with open("{root}/{_id}/config.json".format(root=runs_root, _id=_id)) as f:
+            with open(folder_path / "config.json") as f:
                 d = json.load(f)
                 global_id = d["global_id"]
                 experiment_id = d["experiment_id"]
         except Exception as e:
             logger.info(f"Error getting experiment {_id} from experient run - deleting")
-            delete_id(folder_path, _id, tmp_id)
+            delete_id(folder_path, bin_path)
             continue
 
         if experiment_id not in valid_experiment_ids:
             if state.verbose:
                 logger.info(f"deleting {_id} because it is not a valid experiment id")
 
-            delete_id(folder_path, _id, tmp_id)
+            delete_id(folder_path, bin_path)
 
-        # +1 because we want to see if the experiment id was run AFTER this current run
+        # Check if experiment_id exists multiply times
+        # Since all_experiment_ids is ordred by start_time we only need to check if it exists
+        #   in all_experiment_ids AFTER this one
         if experiment_id in all_experiment_ids[i + 1 :]:
             if state.verbose:
                 logger.info(f"deleting {_id} because a newer run exists")
 
-            delete_id(folder_path, _id, tmp_id)
+            delete_id(folder_path, bin_path)
 
 
 def prune_results(tmp_id):
