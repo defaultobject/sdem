@@ -9,6 +9,23 @@ help_texts = {
     "observer": "Run experiment with a sacred observer",
 }
 
-experiment_config = {}
-
-DOCKER_RUN_COMMAND = "cd models; python {name} {order}"
+experiment_config = {
+    'experiment_configs': {
+        'local': 'experiment_config.yaml',
+        'project': '../sdem_project_config.yaml',
+    },
+    'template': {
+        'experiment_file' : 'm_*.py',
+        'run_command': {
+            'docker': 'cd models; python {name} {order}',
+            'local': 'cd models; python {name} {order}',
+            'local_no_observer': 'cd models; python {name} {order} --no-observer',
+        },
+        'folder_structure': {
+            'model_files': 'models',
+            'scared_run_files': 'models/runs',
+            'bin': 'models/runs',
+            'tmp': 'tmp'
+        }
+    }
+}

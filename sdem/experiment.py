@@ -2,6 +2,7 @@ from sacred import Experiment as SacredExperiment
 from sacred.observers import FileStorageObserver
 
 import argparse
+from pathlib import Path
 
 import sys
 
@@ -71,19 +72,20 @@ class Experiment(SacredExperiment):
         if self.config_function is None:
             raise RuntimeError("No config function registered. ")
 
-        filename = inspect.getfile(function)
+        filename = Path(inspect.getfile(function))
 
         parser = argparse.ArgumentParser()
         parser.add_argument('i', type=int, default=-1, help='Experiment id to run')
-        parser.add_argument('--dry', action='store_true', default=False, help='Dry run without observer')
+        parser.add_argument('--no-observer', action='store_true', default=False, help='Run without observer')
         input_args = parser.parse_args()
 
-        use_observer = not(input_args.dry)
+        use_observer = not(input_args.no_observer)
         i = input_args.i
 
         configs = self.config_function()
 
         if i == -1:
+            # Run all experiments
             for i, config in enumerate(configs):
                 config = manager.ensure_correct_fields_for_model_file_config(
                     filename, config, i
@@ -91,6 +93,7 @@ class Experiment(SacredExperiment):
                 self.run_config(function, config, use_observer=use_observer)
 
         else:
+            # Run specific experiment
             config = manager.ensure_correct_fields_for_model_file_config(
                 filename, configs[i], i
             )

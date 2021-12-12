@@ -5,10 +5,12 @@ import builtins
 from types import ModuleType
 import uuid
 from pathlib import Path
+from typing import List
 
 from .. import template
 from .. import utils
 from .. import state
+from .. import dispatch
 
 from ..results.local import get_run_configs
 
@@ -48,14 +50,13 @@ def reset_import():
     builtins.__import__ = old_imp
 
 
-def get_experiment_config():
+def get_experiment_config(default_config):
     """
-    There are three levels of config: local, project, global.
-    Local takes precedent over project + gloabl, and project does over global.
+    There are two levels of config: local and project.
+        Local takes precedent over project.
     """
-    tmpl = template.get_template()
 
-    _config = {}
+    _config = default_config
 
     def read_config(file_name):
         try:
@@ -65,16 +66,18 @@ def get_experiment_config():
 
         return c
 
-    # try load global config
-    global_config = read_config(tmpl["global_config"])
-    _config = utils.add_dicts([_config, global_config])
-
     # try load project config
-    project_config = read_config(tmpl["project_config"])
+    project_config = read_config(
+        _config["experiment_configs"]['project']
+    )
+    # update and overwrite _config
     _config = utils.add_dicts([_config, project_config])
 
     # try load local config
-    local_config = read_config(tmpl["local_config"])
+    local_config = read_config(
+        _config["experiment_configs"]['local']
+    )
+    # update and overwrite _config
     _config = utils.add_dicts([_config, local_config])
 
     return _config
@@ -115,7 +118,7 @@ def get_experiment_name():
 
 
 def ensure_correct_fields_for_model_file_config(
-    experiment: str, config: dict, i: int
+    experiment: Path, config: dict, i: int
 ) -> dict:
     """
     This method appends required items to config.
@@ -129,7 +132,7 @@ def ensure_correct_fields_for_model_file_config(
         global_id: unqiue id across any run and file. is not included in experiment_id hash so that experiment_id's stay consistent.
 
     """
-    config["filename"] = experiment
+    config["filename"] = experiment.name
 
     # add empty keys that can be used to add configs after experiment runs without affect IDs
     additional_key = "__tmp__{i}"
@@ -150,7 +153,7 @@ def ensure_correct_fields_for_model_file_config(
     if "experiment_id" not in config.keys():
         experiment_id = utils.get_dict_hash(config)
 
-    # get order_id AFTER fold because we want the fold_id to be consistent across, and the order_id is always incrememnting
+    # get order_id AFTER fold because we want the fold_id to be consistent across experiments, and the order_id is always incrememnting
     if "order_id" not in config.keys():
         config["order_id"] = i
 
@@ -171,7 +174,7 @@ def ensure_correct_fields_for_model_file_config(
     return config
 
 
-def get_configs_from_model_files(model_root=None):
+def get_configs_from_model_files(experiment_config: dict, model_root=None) -> List[dict]:
     """
     Assumes that all configs are defined within the model files:
         models/m_{name}.py
@@ -187,22 +190,29 @@ def get_configs_from_model_files(model_root=None):
     """
 
     if model_root is None:
-        tmpl = template.get_template()
-        model_root = tmpl["model_dir"]
+        model_root = Path(experiment_config['template']['folder_structure']['model_files'])
+    else:
+        model_root = Path(model_root)
 
-    experiment_files = [
-        filename for filename in os.listdir(model_root) if filename.startswith("m_")
-    ]
+    experiment_file_pattern = experiment_config['template']['experiment_file']
+
+    # find all files in model_root that have the patten experiment_file_pattern
+    matched_files = model_root.glob(experiment_file_pattern) 
+
+    # only keep valid files
+    experiment_files = [f for f in matched_files if f.is_file()]
+
 
     if len(experiment_files) == 0:
         raise RuntimeError(
-            "No models found in {path}".format(path=os.getcwd() + "/" + model_root)
+            f"No models found in {model_root.resolve()} with pattern {experiment_file_pattern}"
         )
+
+    # Go through every experiment file and store the found configs
 
     experiment_config_arr = []
 
-
-
+    # enable the custom hook to avoid uncessary import errors
     set_custom_import()
 
     for experiment in experiment_files:
@@ -210,15 +220,14 @@ def get_configs_from_model_files(model_root=None):
         if state.verbose:
             logger.info(f"Loading configs from {experiment}")
 
-
-
-
-        # logger does not exit when it catches an execption, just prints it
+        # If an error occurs skip and continue
+        #    logger does not exit when it catches an execption, just prints it
         @logger.catch
         def load():
-            mod = utils.load_mod(model_root, experiment)
+            mod = utils.load_mod(experiment)
 
             # each model file must define an experiment variable called ex
+            # use ex to get the configs
             experiment_configs = mod.ex.config_function()
 
             for i, config in enumerate(experiment_configs):
@@ -235,9 +244,9 @@ def get_configs_from_model_files(model_root=None):
         # revert back to orginal working directory
         os.chdir(cwd)
 
+
+    # revert back to default import 
     reset_import()
-
-
 
     return experiment_config_arr
 
@@ -328,3 +337,50 @@ def remove_tmp_folder_if_empty(_id):
 
     utils.delete_if_empty(f"{bin_dir}/{_id}")
     utils.delete_if_empty(f"{bin_dir}")
+
+def construct_filter(_filter, filter_file):
+    """
+    Convert _filter to a dict. Load filter_file and then overwrite __filter.
+    """
+    filter_dict = utils.str_to_dict(_filter)
+
+    _filter_from_file = {}
+    if filter_file is not None:
+        # filter from file will overwrite filter_dict
+        # if a list of filters is defined in filter_file then filter_from_file will be a list of dictionaries
+        _filter_from_file = utils.json_from_file(filter_file)
+
+    if type(_filter_from_file) != list:
+        _filter_from_file = [_filter_from_file]
+
+    filter_from_file = []
+    for _f in _filter_from_file:
+        _f = utils.add_dicts([filter_dict.copy(), _f])
+        filter_from_file.append(_f)
+
+    return filter_from_file
+
+def get_dispatched_fn(group: str, location: str, experiment_config: dict):
+    """
+    Find group function. We support two scenarios:
+        1) the dispatch key is directly location. 
+        2) the dispatch key is experiment_config[location]["type"]. 
+     This allows a location to have its own function and also allows
+        common code (ie for running on HPC cluster) to be used in multiple
+        locations
+    """
+
+    fn = None
+
+    if (location in experiment_config.keys()) and ('type' in experiment_config[location]):
+        location_type = experiment_config[location]["type"]
+        if dispatch.check(group, location_type):
+            fn = dispatch.dispatch(group, location_type)
+
+    if fn is None:
+        if dispatch.check(group, location):
+            fn = dispatch.dispatch(group, location)
+        else:
+            raise RuntimeError(f'No {group} function found for location {location}')
+
+    return fn

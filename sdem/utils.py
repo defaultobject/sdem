@@ -22,8 +22,9 @@ NO_LIST = ("no", "false", "f", "n", "0")
 
 
 def _s(*args) -> str:
-    """
-    *args: List[str]
+    """ 
+    Concate all args. Notation follows from numpy np._c[]
+        *args: List[str] 
     """
     s_arr = [str(s) for s in args]
     return "".join(s_arr)
@@ -34,11 +35,14 @@ def save_to_pickle(data, name):
         pickle.dump(data, file)
 
 def read_pickle():
-    pass
+    raise NotImplementedError()
 
 
 def str_to_bool(v: str) -> bool:
-    # from https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
+    """
+    Convert string input to a boolean
+        from https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
+    """
     if isinstance(v, bool):
         return v
     if v.lower() in YES_LIST:
@@ -48,12 +52,13 @@ def str_to_bool(v: str) -> bool:
     else:
         raise RuntimeError("Boolean value expected.")
 
-
 def str_to_dict(s: str) -> dict:
+    """ Convert input into a dict """
     return json.loads(s)
 
 
 def json_from_file(f: str) -> dict:
+    """ Read a json file into a dict """
     _dict = {}
 
     with open(f, "r") as fh:
@@ -63,6 +68,7 @@ def json_from_file(f: str) -> dict:
 
 
 def get_permission(question):
+    """ Ask user for yes or no """
     ans = input(question)
     if ans in YES_LIST:
         return True
@@ -70,7 +76,7 @@ def get_permission(question):
 
 
 def ask_permission(question, fn=None):
-    # Ask permission before running fn
+    """ Ask permission before running fn """
     ans = get_permission(question)
 
     if fn is None:
@@ -129,7 +135,6 @@ def dict_is_subset(dict1, dict2):
     Return true if dict1 is a subset of dict2.
         If dict1 has iterable items then this will be treated as an OR function.
     """
-    # return all(item in dict2.items() for item in dict1.items())
     is_subset = True
     for k, i in dict1.items():
         if k not in dict2.keys():
@@ -177,21 +182,30 @@ def get_dict_hash(_dict):
 
 
 def get_unique_key():
+    """ Return a unique global ID """
     return uuid.uuid4().hex
 
 
-def load_mod(root, file_name):
+def load_mod(file_path: Path):
     """
     loads file_name as a python module
     """
+    parent_dir = str(file_path.parent.resolve())
+    file_name = file_path.name
+
+    # store current directory so we can return later
     cwd = os.getcwd()
+
     # cd into root so that relative paths inside file_name still work
-    os.chdir(root)
+    os.chdir(parent_dir)
+
     spec = importlib.util.spec_from_file_location("", file_name)
     foo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(foo)
+
     # revert back to orginal working directory
     os.chdir(cwd)
+
     return foo
 
 
@@ -279,3 +293,4 @@ def ensure_backslash(s):
     if s[-1] != "/":
         return s + "/"
     return s
+

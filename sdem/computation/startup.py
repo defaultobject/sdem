@@ -22,8 +22,11 @@ def check():
 
 
 def load_config():
+    default_config = state.experiment_config
 
-    _config = manager.get_experiment_config()
+    _config = manager.get_experiment_config(
+        default_config
+    )
 
     if state.verbose:
         logger.info("Experiment config: ")

@@ -6,26 +6,6 @@ from ..computation import manager, local_runner, docker_runner, cluster, server
 from .. import utils
 
 
-def construct_filter(_filter, filter_file):
-    filter_dict = utils.str_to_dict(_filter)
-
-    _filter_from_file = {}
-    if filter_file is not None:
-        # filter from file will overwrite filter_dict
-        # if a list of filters is defined in filter_file then filter_from_file will be a list of dictionaries
-        _filter_from_file = utils.json_from_file(filter_file)
-
-    if type(_filter_from_file) != list:
-        _filter_from_file = [_filter_from_file]
-
-    filter_from_file = []
-    for _f in _filter_from_file:
-        _f = utils.add_dicts([filter_dict.copy(), _f])
-        filter_from_file.append(_f)
-
-    return filter_from_file
-
-
 def run(
     location: str = typer.Option("local", help=state.help_texts["location"]),
     force_all: bool = typer.Option(True, help=state.help_texts["force_all"]),
@@ -39,8 +19,10 @@ def run(
     ),
 ):
 
+    experiment_config = state.experiment_config
+
     # construct filter from passed input and file input
-    filter_dict = construct_filter(filter, filter_file)
+    filter_dict = manager.construct_filter(filter, filter_file)
 
     # group together params so passing them around is easier
     run_settings = {
@@ -49,45 +31,36 @@ def run(
         "run_sbatch": sbatch,
     }
 
-    # load experiment configs and filter
-    configs_to_run = manager.get_configs_from_model_files()
+    # load all experiment configs 
+    configs_to_run = manager.get_configs_from_model_files(experiment_config)
+
+    # remove configs that do not match filter
     configs_to_run = manager.filter_configs(configs_to_run, filter_dict, new_only)
 
     if print_configs:
         utils.print_dict(configs_to_run)
 
-    experiment_config = state.experiment_config
-
-    # if cluster
-    if location in experiment_config.keys():
-        if experiment_config[location]["type"] == "cluster":
-            fn = dispatch.dispatch("run", "cluster")
-        elif experiment_config[location]["type"] == "server":
-            fn = dispatch.dispatch("run", "server")
-        else:
-            # get relevant run function
-            fn = dispatch.dispatch("run", location)
-    else:
-        # get relevant run function
-        fn = dispatch.dispatch("run", location)
-
-    fn(configs_to_run, run_settings, location)
+    # Run if not in dry mode
+    if state.dry == False:
+        fn = manager.get_dispatched_fn('run', location, experiment_config)
+        fn(configs_to_run, experiment_config, run_settings, location)
 
 
 @dispatch.register("run", "local")
-def local_run(configs_to_run, run_settings, location):
-    local_runner.local_run(configs_to_run, run_settings)
+def local_run(configs_to_run, experiment_config, run_settings, location):
+    local_runner.local_run(configs_to_run, experiment_config, run_settings)
 
 
 @dispatch.register("run", "docker")
-def docker_run(configs_to_run, run_settings, location):
+def docker_run(configs_to_run, experiment_config, run_settings, location):
     docker_runner.docker_run(configs_to_run, run_settings)
 
 
 @dispatch.register("run", "cluster")
-def cluster_run(configs_to_run, run_settings, location):
+def cluster_run(configs_to_run, experiment_config, run_settings, location):
     cluster.cluster_run(configs_to_run, run_settings, location)
 
+
 @dispatch.register("run", "server")
-def server_run(configs_to_run, run_settings, location):
+def server_run(configs_to_run, experiment_config, run_settings, location):
     server.server_run(configs_to_run, run_settings, location)

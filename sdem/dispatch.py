@@ -1,3 +1,6 @@
+""" 
+Simple dispatcher that groups functions by groups
+"""
 from loguru import logger
 import sys
 
@@ -29,3 +32,9 @@ def dispatch(group, key):
         return _REGISTERED[group][key]
 
     return find()
+
+def check(group, key):
+    if group in _REGISTERED:
+        if key in _REGISTERED[group]:
+            return True
+    return False
