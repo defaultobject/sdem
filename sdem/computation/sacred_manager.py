@@ -216,68 +216,74 @@ def prune_experiments(bin_path: Path, experiment_config:dict):
             delete_id(folder_path, bin_path)
 
 
-def prune_results(tmp_id):
+def prune_results(bin_path: Path, experiment_config: dict):
     """
     Collects all configs
     Creates all valid results file
     Removes any result files that are not in this list
 
     """
-    tmpl = template.get_template()
-    name_fn = tmpl["result_name_fn"]
-    results_root = tmpl["results_files"]
+    results_root = manager.get_results_path(experiment_config)
+    all_configs = manager.get_configs_from_model_files(experiment_config)
 
-    all_configs = manager.get_configs_from_model_files()
-    valid_results = [name_fn(config) for config in all_configs]
+    result_output_pattern = manager.get_results_output_pattern(experiment_config)
 
-    # append pickle
-    valid_results = [res + ".pickle" for res in valid_results]
 
-    results_folders = [f for f in os.listdir(results_root) if f.endswith(".pickle")]
+    valid_result_files = [
+        manager.substitute_config_in_str(result_output_pattern, config)
+        for config in all_configs
+    ]
+
+    results_folders = [f for f in os.listdir(results_root)]
 
     for res in results_folders:
-        if res not in valid_results:
-            delete_result(results_root + "/" + res, res, tmp_id)
+        if res not in valid_result_files:
+            delete_result(results_root / res, bin_path)
 
 
-def fix_filestorage_ids():
+def fix_filestorage_ids(experiment_config):
     """
     Goes through the data twice, once to rename to a temp name to avoid conflict and then to rename to the correct format
     """
-    experiment_config = state.experiment_config
 
-    tmpl = template.get_template()
-    runs_root = tmpl["scared_run_files"]
+    runs_root = manager.get_sacred_runs_path(experiment_config)
+    experiment_folders = get_sacred_experiment_folders(runs_root) 
 
-    if not(os.path.exists(runs_root)):
-        logger.info(f'Folder {runs_root} does not seem to exist - current working dir is {os.getcwd()}!')
-        return
-
-    experiment_folders = [
-        folder for folder in os.listdir(runs_root) if folder.isnumeric()
-    ]
-    # sort experiments by filename and order_id so that the _ids are consistent
-    experiment_folders = order_experiment_folders_by_datetime(experiment_folders)
+    # sort experiments by datetime
+    experiment_folders = order_experiment_folders_by_datetime(runs_root, experiment_folders)
 
     to_change = []
     for i, _id in enumerate(experiment_folders):
-        folder_path = runs_root + "/" + _id
-
+        folder_path = runs_root / _id
         _id = int(_id)
+
+        # sacred run ids start from 1
         new_id = i + 1
 
-        new_folder_path = runs_root + "/" + str(new_id) + ".tmp"
+        new_folder_path = runs_root /  f"{str(new_id)}.tmp"
+
+        # Do not rename if it will overwrite something
+        if new_folder_path.exists():
+            logger.info(f'{new_folder_path} exists -- skipping!')
+            continue
 
         to_change.append(new_folder_path)
 
         if state.verbose:
             logger.info(f"Renaming: {folder_path} -> {new_folder_path}")
-        os.rename(folder_path, new_folder_path)
+
+
+        os.rename(str(folder_path), str(new_folder_path))
 
     for _file in to_change:
-        new_folder_path = os.path.splitext(_file)[0]
+        new_folder_path = runs_root / _file.stem 
+
+        # Do not rename if it will overwrite something
+        if new_folder_path.exists():
+            logger.info(f'{new_folder_path} exists -- skipping!')
+            continue
 
         if state.verbose:
             logger.info(f"Renaming: {_file} -> {new_folder_path}")
 
-        os.rename(_file, new_folder_path)
+        os.rename(str(_file), str(new_folder_path))

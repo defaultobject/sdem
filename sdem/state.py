@@ -26,7 +26,11 @@ experiment_config = {
             'model_files': 'models',
             'scared_run_files': 'models/runs',
             'bin': 'sdem_bin',
-            'tmp': 'tmp'
+            'tmp': 'tmp',
+            'results': {
+                'root': 'results',
+                'file': '{name}_{experiment_id}.pickle'
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ from types import ModuleType
 import uuid
 from pathlib import Path
 from typing import List
+from string import Formatter
 
 from .. import template
 from .. import utils
@@ -337,12 +338,13 @@ def make_and_get_tmp_delete_folder(experiment_configs: dict) -> Path:
     return bin_id
 
 
-def remove_tmp_folder_if_empty(_id):
-    tmpl = template.get_template()
-    bin_dir = tmpl["bin_dir"]
+def remove_tmp_folder(bin_path, experiment_config):
+    tmp_path = get_tmp_folder_path(experiment_config)
+    utils.move_dir_if_exists(tmp_path, bin_path)
 
-    utils.delete_if_empty(f"{bin_dir}/{_id}")
-    utils.delete_if_empty(f"{bin_dir}")
+def remove_bin_folder_if_empty(bin_path):
+    utils.delete_if_empty(bin_path)
+    utils.delete_if_empty(bin_path.parent)
 
 def construct_filter(_filter, filter_file):
     """
@@ -391,7 +393,50 @@ def get_dispatched_fn(group: str, location: str, experiment_config: dict):
 
     return fn
 
+def substitute_config_in_str(s: str, config: dict) -> str:
+    # get values to format
+    formatter = Formatter().parse(s)
+
+    field_names = [fname for _, fname, _, _ in formatter if fname]
+
+    try:
+        dict_to_pass = {
+            k: config[k] for k in field_names
+        }
+
+        formatted_s = s.format(**dict_to_pass)
+    except KeyError as e:
+        logger.error(e)
+
+
+    return formatted_s
+    
 def get_sacred_runs_path(experiment_config) -> Path:
-    return Path(
+    p =  Path(
         experiment_config['template']['folder_structure']['scared_run_files']
     )
+
+    if not(p.exists()):
+        logger.error(f'Folder {p} does not seem to exist - current working dir is {os.getcwd()}!')
+
+    return p
+
+def get_results_path(experiment_config) -> Path:
+    p =  Path(
+        experiment_config['template']['folder_structure']['results']['root']
+    )
+
+    if not(p.exists()):
+        logger.error(f'Folder {p} does not seem to exist - current working dir is {os.getcwd()}!')
+
+    return p
+
+def get_results_output_pattern(experiment_config) -> str:
+    return experiment_config['template']['folder_structure']['results']['file']
+
+def get_tmp_folder_path(experiment_config) -> Path:
+    return Path(
+        experiment_config['template']['folder_structure']['tmp']
+    )
+
+
