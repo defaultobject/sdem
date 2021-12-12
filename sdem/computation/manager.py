@@ -321,14 +321,20 @@ def create_default_experiment():
             pathlib.Path(f"{_folder}").mkdir(parents=True, exist_ok=True)
 
 
-def make_and_get_tmp_delete_folder():
-    tmpl = template.get_template()
-    bin_dir = tmpl["bin_dir"]
+def make_and_get_tmp_delete_folder(experiment_configs: dict) -> Path:
+    """ Create a unique bin folder and returns the path. """
+    bin_dir = experiment_configs['template']['folder_structure']['bin']
 
-    _id = uuid.uuid4().hex
-    Path(f"{bin_dir}").mkdir(exist_ok=True)
-    Path(f"{bin_dir}/{_id}").mkdir(exist_ok=True)
-    return _id
+    # make bin directory
+    bin_dir = Path(bin_dir)
+    bin_dir.mkdir(exist_ok=True)
+
+    # make unique id to store bin items
+    _id = utils.get_unique_key()
+    bin_id = bin_dir / _id 
+    bin_id.mkdir()
+
+    return bin_id
 
 
 def remove_tmp_folder_if_empty(_id):

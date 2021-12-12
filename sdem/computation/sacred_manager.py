@@ -9,6 +9,7 @@ import json
 import gridfs
 import datetime
 import dateutil.parser
+from pathlib import Path
 
 import numpy as np
 
@@ -35,24 +36,13 @@ from . import manager
 from loguru import logger
 
 
-def get_experiment_details():
-    """
-    Loads:
-        experiment configs
-        experiment_config yaml file
-    """
+def delete_id(folder_path: Path, bin_path: Path):
+    _id = folder_path.name
 
-    pass
-
-
-def delete_id(folder_path, _id, tmp_folder_id):
     if state.verbose:
-        logger.info(f"DELETING ID: {_id}")
+        logger.info(f"DELETING ID: {_id} -> {bin_path}")
 
-    tmpl = template.get_template()
-    bin_dir = tmpl["bin_dir"]
-
-    utils.move_dir_if_exists(folder_path, f"{bin_dir}/{tmp_folder_id}")
+    utils.move_dir_if_exists(folder_path, bin_path)
 
 
 def delete_result(f, name, tmp_folder_id):
@@ -109,25 +99,33 @@ def get_experiment_ids_from_folders(experiment_folders):
     return experiment_ids
 
 
-def delete_empty_experiments(runs_root, experiment_folders, tmp_id):
+def delete_empty_experiments(runs_root: Path, experiment_folders: list, bin_path: Path) -> list:
+    """
+    Delete empty experiments from experiment_folders and remove from the list
+    """
     _experiment_folders = []
     for folder in experiment_folders:
-        if not os.listdir(runs_root + "/" + folder):
-            delete_id(runs_root + "/" + folder, folder, tmp_id)
+        if not os.listdir(runs_root / folder):
+            delete_id(runs_root / folder, bin_path)
         else:
             _experiment_folders.append(folder)
 
     return _experiment_folders
 
 
-def prune_unfinished(tmp_id):
-    runs_root = "models/runs"
-    experiment_folders = [
-        folder for folder in os.listdir(runs_root) if folder.isnumeric()
-    ]
+def prune_unfinished(bin_path: Path, experiment_config: dict):
+    # Get sacred run root
+    runs_root = Path(
+        experiment_config['template']['folder_structure']['scared_run_files']
+    )
 
-    # check that experiment_folders are not empty
-    experiment_folders = delete_empty_experiments(runs_root, experiment_folders, tmp_id)
+    # Load all sacred runs
+    experiment_folders = get_sacred_experiment_folders(runs_root) 
+
+    # Delete empty experiment folders
+    experiment_folders = delete_empty_experiments(runs_root, experiment_folders, bin_path)
+
+    breakpoint()
 
     all_experiment_ids = get_experiment_ids_from_folders(experiment_folders)
 
@@ -160,16 +158,16 @@ def prune_unfinished(tmp_id):
                 pass
 
 
-def get_experiment_folders(runs_root):
+def get_sacred_experiment_folders(runs_root):
     return [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
 
 
-def prune_experiments(tmp_id):
+def prune_experiments(bin_path: Path, experiment_config:dict):
     """
     Removes all local experiment folders that do not have a valid config id and removes all but the last of each config_id
     """
 
-    prune_unfinished(tmp_id)
+    prune_unfinished(bin_path, experiment_config)
 
     experiment_config = state.experiment_config
 

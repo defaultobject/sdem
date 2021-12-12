@@ -15,17 +15,13 @@ def clean(experiment_config):
     We do not delete any experiments, only move them to a temporal folder.
     """
 
-    breakpoint()
+    bin_path = manager.make_and_get_tmp_delete_folder(experiment_config)
 
-    tmpl = template.get_template()
-
-    tmp_id = manager.make_and_get_tmp_delete_folder()
-
-    if tmpl["use_mongo"]:
-        ask_permission("Sync local files with mongo?", lambda: None)
+    if experiment_config['template']["use_mongo"]:
+        raise NotImplementedError()
 
     ask_permission(
-        "Prune experiment files?", lambda: sacred_manager.prune_experiments(tmp_id)
+        "Prune experiment files?", lambda: sacred_manager.prune_experiments(bin_path, experiment_config)
     )
 
     ask_permission("Fix Run IDs?", lambda: sacred_manager.fix_filestorage_ids())

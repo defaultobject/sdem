@@ -15,6 +15,7 @@ experiment_config = {
         'project': '../sdem_project_config.yaml',
     },
     'template': {
+        'use_mongo': False,
         'experiment_file' : 'm_*.py',
         'run_command': {
             'docker': 'cd models; python {name} {order}',
@@ -24,7 +25,7 @@ experiment_config = {
         'folder_structure': {
             'model_files': 'models',
             'scared_run_files': 'models/runs',
-            'bin': 'models/runs',
+            'bin': 'sdem_bin',
             'tmp': 'tmp'
         }
     }

@@ -86,9 +86,11 @@ def ask_permission(question, fn=None):
             fn()
 
 
-def move_dir_if_exists(root, tmp_dir):
-    if os.path.exists(root):
-        shutil.move(root, tmp_dir)
+def move_dir_if_exists(root: Path, tmp_dir: Path) -> None:
+    """ If root exists move root to tmp_dir.  """
+    if root.exists():
+        # TODO: rewrite using pathlib
+        shutil.move(str(root), str(tmp_dir))
 
 
 def mkdir_if_not_exists(root):

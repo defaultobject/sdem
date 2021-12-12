@@ -72,7 +72,7 @@ def index_of_match(elem, arr):
 
 def get_run_configs(exp_root):
     runs_root = str(Path(exp_root) / 'models' / 'runs')
-    experiment_folders = sacred_manager.get_experiment_folders(runs_root)
+    experiment_folders = sacred_manager.get_sacred_experiment_folders(runs_root)
     config_list = []
     for run in experiment_folders:
         # load config and metrics
