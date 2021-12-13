@@ -1,12 +1,129 @@
-# Sacred Experiment Manager (sem)
+# SacreD Experiment Manager (sdem)
+
+## Description
+
+Sacred Experiment manager combines [sacred](https://github.com/IDSIA/sacred) and [dvc](https://dvc.org) to run experiments locally, on HPC clusters and across different users. 
 
 
 
-##  Description 
+Currently `sdem` works with `sacred` local files, but there are plans to support `mongo` experiments.
 
-Sacred Experiment manager combines [sacred](https://github.com/IDSIA/sacred) and [dvc](https://dvc.org) to run experiments locally, on clusters and across different users. `sem` can work with and without a mongo database.
 
-# Installation 
+
+## Installation
+
+### Through pip
+
+```bash
+pip install sdem
+```
+
+### From github
+
+```bash
+git clone git@github.com:defaultobject/sdem.git
+cd sdem
+pip install -e .
+```
+
+## Example
+
+The full example is shown in the `example` folder.
+
+
+
+#### Run
+
+There are two ways to run a file, the first is through the `sdem` cli. In The experiment folder run:
+
+```bash
+sdem --verbose run
+```
+
+which will sequentially run all models found in the `models` folder.
+
+Alternatively we can directly run the models file:
+
+```bash
+python m_model.py -1
+```
+
+#### View table of results
+
+`sdem` provides some convenient functions to see the results of the experiments ran. To automatically create a table of results go into the `metrics` folder and run
+
+```bash
+python table_of_results.py
+```
+
+which runs
+
+```python
+results_df = get_ordered_table(
+    '../',
+    metrics=['train_rmse', 'test_rmse'],
+    group_by=[
+        'name', 
+    ],
+    results_by=[''],
+    combine=True,
+    flatten=True,
+)
+```
+
+This will go through every sacred run, and group the metrics by `name` and compute the mean and std across all experiments in this group (ie across folds). This results in 
+
+```
+    name          train_rmse_score    test_rmse_score
+--  ------------  ------------------  -----------------
+ 0  linear_model  0.10 $\pm$ 0.01     0.10 $\pm$ 0.03
+```
+
+To view the results of each fold we can simply add this to the `results_by` argument
+
+```python
+results_df = get_ordered_table(
+    '../',
+    metrics=['train_rmse', 'test_rmse'],
+    group_by=[
+        'name', 
+    ],
+    results_by=['fold'],
+    combine=True,
+    flatten=True,
+)
+```
+
+which results in
+
+```
+    name            fold  train_rmse_score    test_rmse_score
+--  ------------  ------  ------------------  -----------------
+ 0  linear_model       0  0.11 $\pm$ nan      0.09 $\pm$ nan
+ 1  linear_model       1  0.11 $\pm$ nan      0.06 $\pm$ nan
+ 2  linear_model       2  0.09 $\pm$ nan      0.14 $\pm$ nan
+ 3  linear_model       3  0.11 $\pm$ nan      0.09 $\pm$ nan
+ 4  linear_model       4  0.10 $\pm$ nan      0.11 $\pm$ nan
+```
+
+#### Get results for a given experiment
+
+As shown in `predictions.py` we can load (unpacked) pickles and configs for the run experiments:
+
+```python
+res_list, config_list = get_results_that_match_dict(
+    {
+        'fold': 0,
+    },
+    '../'
+)
+
+print(f'Number of experiments found {len(res_list)}')
+```
+
+This will return the (unpacked) pickles and configs of all experiments that match the passed dictionary, in this case it will return the one with fold equal to zero.
+
+# Installation
 
 ## Setup Mongo
 
@@ -52,165 +169,6 @@ database: sacred
 host: localhost
 ```
 
-
-
-## Required Experiment Layout
-
-### Folder Structure
-
-To use Experiment Manager every experiment must have the following  structure
-
-```
-<experiment_name>/
-<experiment_name>/experiment_config.yaml
-<experiment_name>/models/m_<model_name>.py
-```
-
-where each model file is prefixed by `m_`.
-
-### experiment_config.yaml
-
-This yaml file is used to define cluster/remote host settings as well as any global experiment settings (e.g number of folds, number of epochs etc) that will be used by the python files. A minimal example is:
-
-```yaml
-#==============================EXPERIMENT MANAGER SETTINGS==============================
-experiment:
-  use_config_id: True
-  overwrite_id: True
-
-
-#==============================CLUSTER SETTINGS==============================
-local:
-  type: 'local'
-
-```
-
-
-
-### Model files `m_<model_name>.py` 
-
-Each model files follows  `sacred` model files closely. A minimal example is:
-
-```python
-import sys
-
-from experiment_manager import Experiment
-from experiment_manager.util import read_yaml
-
-import pickle
-import numpy as np
-
-ex = Experiment(__file__)
-ec = read_yaml('../experiment_config.yaml')
-
-@ex.configs
-def get_config():
-    return [
-        {'name': 'test', 'fold':0},
-        {'name': 'test', 'fold':1},
-        {'name': 'test', 'fold':2},
-        {'name': 'test', 'fold':3}
-    ]
-
-@ex.automain
-def run(config):
-    N = 100
-    X = np.random.randn(N)
-    Y = np.random.randn(N)
-    prediction_fn = lambda X: np.random.randn(X.shape[0])
-    
-    train_metrics, train_pred = ex.log_metrics(X, Y, prediction_fn, var_flag=False, log=True, prefix='training')
-    test_metrics, test_pred = ex.log_metrics(X, Y, prediction_fn, var_flag=False, log=True, prefix='testing')
-
-    config_id = config['experiment_id']
-    results = {'epochs': list(range(0, 100))}
-    pickle.dump(results, open( "../results/{name}.pickle".format(name=config_id), "wb" ) )
-    ex.add_artifact("../results/{name}.pickle".format(name=config_id))
-
-```
-
-
-
-Each model must include a main function (a function decorated by `@ex.automain`) and a function that returns an array of experiment config dicts (decorated by `@ex.configs`). Experiment manager will automatically add the following fields to each dict:
-
-```
-	experiment_id: hash of each config dict
-	config_id: hash of each config dict with 'fold' field removed (so that fold_id) is consistent across folds. 
-	order_id: order of each config dict in the list
-	global_id: a global UUID
-```
-
-## Running an experiment manually
-
-To run an experiment you can  run each experiment manually by passing order_id into the python file, e.g:
-
-```bash
-python m_<model_name>.py 0
-```
-
-which will run the main function with the configuration with order_id = 0. 
-
-
-
-## Running experiments with Experiment Manager
-
-An alternative is to add this script at
-
-```
-<experiment_name>/run.py
-```
-
-where `run.py` is 
-
-```python
-from pathlib import Path
-from experiment_manager import main
-
-#Ensure folder structure exists
-Path("models/").mkdir(exist_ok=True)
-Path("models/runs").mkdir(exist_ok=True)
-
-main.run()
-```
-
-this file has an argument parser who's options can be explored using
-
-```bash
-python run.py -h
-```
-
-The most basic usage is to run all model configurations 
-
-```python
-python run.py
-python run.py --sync
-```
-
-where the first command will run all configs and store experiment output in local storage. The second command will sync all local storage with the mongo db.
-
-## Visualising Experiments
-
-All experiments are sacred experiments and so can be visualised with [omniboard](https://github.com/vivekratnavel/omniboard). To start omniboard:
-
-```bash
-python run.py --omniboard
-```
-
-
-
-## Run using singularity
-
-Edit the `experiment_config.yaml` file to include the following:
-
-
-
-```yaml
-<cluster>:
-  sif: '../../projects/dsp/dsp_latest.sif'
-```
-
-
-
 ## DVC Setup
 
 ### Google API Setup
@@ -220,6 +178,7 @@ Follow https://dvc.org/doc/user-guide/setup-google-drive-remote#using-a-custom-g
 - Create project here  https://console.developers.google.com/
 
 - Open  `OAuth consent screen`
+
 - Create OAuth client Credentials
 
 - Enable `Google Drive API`
@@ -235,4 +194,3 @@ dvc remote modify gremote gdrive_client_id <client ID>
 dvc remote modify gremote gdrive_client_secret <client secret>
 dvc remote default gremote
 ```
-
