@@ -55,6 +55,10 @@ FOLDERS_TO_SYNC = ["jobs/", "results/", "models/runs/_sources"]
 
 
 def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
+    """
+    Return true if a folder exp_name exists in the home directory of the cluster
+        otherwise return false
+    """
     remotehost = "{user}@{host}".format(
         user=cluster_config["user"], host=cluster_config["host"]
     )
@@ -82,6 +86,9 @@ def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_
         If a sif file is defined in the configs_to_run this is used
         If a sif file is defined in the cluster config, this is used
         Otherwise no sif file is used
+
+    NOTE: scripts have to been run like 
+        python {filename}.py {order_id}
     """
 
     class ValueArgument(slurmjobs.args.FireArgument):
@@ -268,8 +275,7 @@ def run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config
     os.system(run_ssh_script)
 
 
-@decorators.run_if_not_dry
-def cluster_run(configs_to_run, run_settings, location):
+def cluster_run(configs_to_run, experiment_config, run_settings, location):
     """
     Checks if experiment is not already on cluster
         if so then exit
@@ -281,30 +287,34 @@ def cluster_run(configs_to_run, run_settings, location):
         Move files to cluster
         Run slurm scripts
     """
-    experiment_config = state.experiment_config
     cluster_config = experiment_config[location]
-    experiment_name = manager.get_experiment_name()
+    experiment_name = manager.get_experiment_name(experiment_config)
 
+    # Only run if the experiment is already on the cluster
     if check_if_experiment_exists_on_cluster(experiment_name, cluster_config):
         if state.verbose:
             logger.info(f"Experiment is already on cluster - {location}, exiting!")
 
         return None
 
+
+    # Create HPC slurm scripts using slurmjobs
     create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config)
+
+    # Zip all files to move to the cluster
     compress_files_for_cluster(
         configs_to_run, run_settings, experiment_name, cluster_config
     )
+
+    # Move zip to the cluster and unwrap
     move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
 
-    # only run experiments on cluster if run_sbatch flag is true
+    # Only run experiments on cluster if run_sbatch flag is true
     if run_settings["run_sbatch"]:
         run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
 
 
-@decorators.run_if_not_dry
-def clean_up_cluster(location):
-    experiment_config = state.experiment_config
+def clean_up_cluster(location, experiment_config):
     cluster_config = experiment_config[location]
     experiment_name = manager.get_experiment_name()
 

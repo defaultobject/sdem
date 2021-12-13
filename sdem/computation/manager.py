@@ -92,29 +92,14 @@ def get_experiment_config(default_config, exp_root = None):
     return _config
 
 
-def get_experiment_folder_name():
+def get_experiment_folder_name(experiment_config: dict) -> str:
     """
     The experiment name is the same as the root folder that stores the experiment
     """
-    experiment_config = state.experiment_config
+    return Path.cwd().name
 
-    cwd = os.getcwd().split("/")
-
-    tmpl = template.get_template()
-
-    # This function is called in relation to the run file
-    # get the depth of the run file w.r.t to the base folder
-    run_folder_depth = len(utils.split_path(tmpl["run_dir"]))
-
-    basename = cwd[-run_folder_depth]
-
-    return basename
-
-
-def get_experiment_name():
-    experiment_config = state.experiment_config
-
-    basename = get_experiment_folder_name()
+def get_experiment_name(experiment_config) -> str:
+    basename = get_experiment_folder_name(experiment_config)
 
     if "experiment_name_prefix" in experiment_config.keys():
         experiment_prefix = experiment_config["experiment_name_prefix"]
@@ -465,8 +450,7 @@ def get_tmp_folder_path(experiment_config, exp_root=None) -> Path:
         experiment_config['template']['folder_structure']['tmp']
     )
 
-    if not(p.exists()):
-        logger.error(f'Folder {p} does not seem to exist - current working dir is {os.getcwd()}!')
+    # temp is an optional folder so we do not check if it exists
 
     return p
 

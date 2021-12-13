@@ -22,6 +22,7 @@ experiment_config = {
             'docker_no_observer': 'cd /home/app; cd models; python {filename} {order_id} --no-observer',
             'local': 'cd models; python {filename} {order_id}',
             'local_no_observer': 'cd models; python {filename} {order_id} --no-observer',
+            'cluster': 'python {filename} {order_id}',
         },
         'folder_structure': {
             'model_files': 'models',

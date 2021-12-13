@@ -58,7 +58,7 @@ def docker_run(configs_to_run, experiment_config, run_settings, location):
 
 @dispatch.register("run", "cluster")
 def cluster_run(configs_to_run, experiment_config, run_settings, location):
-    cluster.cluster_run(configs_to_run, run_settings, location)
+    cluster.cluster_run(configs_to_run, experiment_config, run_settings, location)
 
 
 @dispatch.register("run", "server")
