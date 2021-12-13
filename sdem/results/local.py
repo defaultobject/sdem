@@ -1,6 +1,7 @@
+""" Helper function for extracting results and metrics from an sdem experiment. """
 import os
 import pickle
-from ..computation import manager, sacred_manager
+from ..computation import manager, sacred_manager, startup
 from .. import utils, template
 import pandas as pd
 import json
@@ -9,50 +10,65 @@ import typing
 import numpy as np
 from pathlib import Path
 
+from typing import List, Tuple
 
-def _flatten_dict(d):
+def _flatten_checkpoint_dict(d):
     df = pd.json_normalize(d, sep="_")
     return df.to_dict(orient="records")[0]
-
 
 def _get_last_checkpoints(d):
     _d = {}
     for key, item in d.items():
         _d[key] = d[key]["values"][-1]
 
-    return _flatten_dict(_d)
+    return _flatten_checkpoint_dict(_d)
 
+def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = False) -> Tuple[dict, dict]:
+    """
 
-def get_results_that_match_dict(_dict, exp_root, name_fn=None, squeeze=False):
-    tmpl = template.get_template()
+    """
+    # Ensure root is a path 
+    exp_root = Path(exp_root)
 
-    if name_fn is None:
-        name_fn = tmpl["result_name_fn"]
+    # load experiment configs
+    experiment_config = startup.load_config(exp_root=exp_root)
 
-    model_folder = tmpl["model_dir"]
-    exp_root = utils.ensure_backslash(exp_root)
+    # Load all configs
+
+    model_path = manager.get_models_folder_path(experiment_config, exp_root=exp_root)
 
     config_arr = manager.get_configs_from_model_files(
-        model_root=exp_root + f"{model_folder}"
+        experiment_config,
+        model_root= model_path
     )
 
+    # For configs that match filter load the corresponding results pickle file
     matched_configs = []
     matched_results = []
 
+    result_pattern = manager.get_results_output_pattern(experiment_config)
+    results_path = manager.get_results_path(experiment_config, exp_root=exp_root)
+
     for config in config_arr:
         if utils.dict_is_subset(_dict, config):
-            config_results_name = name_fn(config)
 
-            results_path = f"{exp_root}results/{config_results_name}.pickle"
+            results_file = manager.substitute_config_in_str(
+                result_pattern,
+                config
+            )
 
-            if os.path.exists(results_path):
+            res_file = results_path / results_file
+
+            if res_file.exists():
+
+                # Read pickle and save config
                 matched_configs.append(config)
-
-                results = pickle.load(open(results_path, "rb"))
+                results = pickle.load(open(res_file, "rb"))
                 matched_results.append(results)
 
     if len(matched_results) == 0:
         logger.info(f"No results found for {_dict}")
+
     if squeeze:
         if len(matched_results) == 1:
             matched_results = matched_results[0]
@@ -82,110 +98,56 @@ def get_run_configs(exp_root):
 
     return config_list
 
-
-
-
-def _get_results_df(exp_root, metrics, name_fn=None, metric_fn=None):
+def get_results_df(exp_root: Path):
     """
-    Only works for pickle data
-    Collects every results
-    """
-
-    tmpl = template.get_template()
-
-    if metric_fn is None:
-        metric_fn = tmpl["results_metric_fn"]
-
-    if name_fn is None:
-        name_fn = tmpl["result_name_fn"]
-
-    exp_root = utils.ensure_backslash(exp_root)
-
-    configs = manager.get_configs_from_model_files(model_root=exp_root + "/models")
-
-    # each config may have a different set of columns.metrics etc
-    columns = []
-    results_df = []
-
-    for config in configs:
-        config_results_name = name_fn(config)
-
-        results_path = f"{exp_root}results/{config_results_name}.pickle"
-        run_path = f"{exp_root}models/runs/{run_id}/"
-
-        if os.path.exists(results_path):
-            results = pickle.load(open(results_path, "rb"))
-            metrics = metric_fn(results)
-            metrics = _flatten_dict(metrics)
-
-            config_columns = list(config.keys())
-            metric_columns = list(metrics.keys())
-            column_names = config_columns + metric_columns
-
-            config_index = index_of_match(column_names, columns)
-
-            if config_index is None:
-                columns.append(column_names)
-
-            row = list(config.values()) + list(metrics.values())
-
-            if config_index is None:
-                results_df.append([row])
-            else:
-                results_df[config_index].append(row)
-
-    return [
-        pd.DataFrame(results_df[i], columns=columns[i]) for i in range(len(columns))
-    ]
-
-
-def get_results_df(exp_root, name_fn=None, metric_fn=None):
-    """
-    Only works for pickle data
     General Structure:
         - Goes through every sacred run folder
         - extracts config and metrics
         - construct resuts file name from config
         - load results
         - Aggregates and return
+
+    Notes:
+        If there are multiple checkpoints then the last one is used
     """
 
-    tmpl = template.get_template()
+    # load experiment configs
+    experiment_config = startup.load_config(exp_root=exp_root)
 
-    if metric_fn is None:
-        metric_fn = tmpl["results_metric_fn"]
+    # Get sacred runs path
+    runs_root = manager.get_sacred_runs_path(experiment_config, exp_root=exp_root)
 
-    if name_fn is None:
-        name_fn = tmpl["result_name_fn"]
+    # Get all folders that are correspond to sacred runs
+    experiment_folders = sacred_manager.get_sacred_experiment_folders(runs_root)
 
-    exp_root = utils.ensure_backslash(exp_root)
-
-    runs_root = exp_root + "/models/runs"
-    experiment_folders = sacred_manager.get_experiment_folders(runs_root)
-
-    # each config may have a different set of columns.metrics etc
+    # each config may have a different set of columns.metrics etc 
+    # So we group together all configs that have the same columns and metrics
+    # Each item of these lists correspond to another group
     columns = []
     results_df = []
 
     for run in experiment_folders:
         # load config and metrics
-        with open(f"{runs_root}/{run}/config.json") as f:
+        with open(runs_root / run / 'config.json') as f:
             config = json.load(f)
 
-        with open(f"{runs_root}/{run}/metrics.json") as f:
+        with open(runs_root / run / "metrics.json") as f:
             metrics = json.load(f)
 
         if bool(metrics) == False:
             # metrics is empty
-            logger.info(f"Skiping {run}")
+            logger.info(f"Skiping {run} because metrics is empty")
             continue
 
+        # When there are multiply checkpoints we use the last one
         metrics = _get_last_checkpoints(metrics)
 
+        # Get config and metrics columns so we can find which group to add to 
         config_columns = list(config.keys())
         metric_columns = list(metrics.keys())
         column_names = config_columns + metric_columns
 
+        # Find group index
         config_index = index_of_match(column_names, columns)
 
         if config_index is None:
@@ -254,6 +216,7 @@ def select_results(ordered_df, selected_by):
     return pd.concat(df_arr, axis=0)
 
 def combine_mean_std(row, metric, decimal_places):
+    """ Merge mean and std column into a form like mean \pm std with mean and std rounded to a given decimal places. """
     m_avg = row[f'{metric}_mean']
     m_std = row[f'{metric}_std']
     testing_m_avg = ("{:."+str(decimal_places)+"f}").format(m_avg)
@@ -273,11 +236,13 @@ def get_ordered_table(
     drop_filter: typing.Optional[typing.List[dict]] = None,
     combine=False,
     flatten=False,
-    name_fn=None,
     metric_fn=None,
-    scale: typing.Optional[dict]=None
+    scale: typing.Optional[dict]=None,
+    verbose=False
 ):
     """
+    Constructs a table of results from an sdem experiment. This supports finding mean and standard deviations over a given group (i.e folds).
+
     Args:
         input_df: dataframe to turn into a structured table
         group_by: list of columns/keys that define the distinct groups to average results over (rows of table)
@@ -290,18 +255,26 @@ def get_ordered_table(
 
     """
 
+    exp_root = Path(exp_root)
+
     if results_by:
         if group_by:
             group_by = group_by + results_by
         else:
             group_by = results_by
 
-    all_results_df = get_results_df(exp_root, name_fn=name_fn, metric_fn=metric_fn)
+    # Load results for all experiments
+    # Each element of the list corresponds to separate table 
+    all_results_df = get_results_df(exp_root)
+
     
+    # Create one table for each group of configs found in all_results_df
     ordered_dfs =[]
     for results_df in all_results_df:
-        print(results_df.keys())
-        #create agg_dict
+        if verbose:
+            print(results_df.keys())
+
+        # create actions to apply over a grouped table
         agg_dict = {}
         for m in metrics:
             agg_dict[m] = ['mean', 'std']
@@ -318,9 +291,11 @@ def get_ordered_table(
                     if m in scale.keys():
                         results_df[m] = results_df[m]*scale[m]
 
+            # Apply agg_dict over the found groups
             _ordered_df = results_df.groupby(group_by).agg(agg_dict)
 
         else:
+            # There are no folds/groups to average over
             _ordered_df = results_df
 
         ordered_dfs.append(_ordered_df)
@@ -328,31 +303,31 @@ def get_ordered_table(
     if combine:
         ordered_df = pd.concat(ordered_dfs, axis=0)
 
-        if results_by:
-            #ordered_df = ordered_df.unstack(level=results_by)
-            #print(ordered_df)
-            pass
-
         if flatten:
+            # Ordered df is a multi-layered pandas Dataframe
+            #  We reduces it to a single layer and combine mean and std columns into a single
 
             ordered_df = flatten_and_rename_columns(ordered_df)
             ordered_df.reset_index(level=ordered_df.index.names, inplace=True)
 
+            # Remove rows by drop_filter
             if drop_filter:
                 ordered_df = filter_results(ordered_df, drop_filter)
 
+            # Only keep rows that match select_filter
             if select_filter:
                 ordered_df = select_results(ordered_df, select_filter)
 
+            #
             for m in metrics:
-                ordered_df[f'{m}_score'] = ordered_df.apply(lambda row: combine_mean_std(row, m, decimal_places), axis=1)
+                # For each metric combine the mean and std into a form like `mean \pm std`
+                ordered_df[f'{m}_score'] = ordered_df.apply(
+                    lambda row: combine_mean_std(row, m, decimal_places), 
+                    axis=1
+                )
+                # Remove mean and std only columns
                 ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std'], axis=1)
-
-
             
         return ordered_df
     else:
-        for ordered_df in ordered_dfs:
-            print(ordered_df)
-
-    return None
+        return ordered_dfs

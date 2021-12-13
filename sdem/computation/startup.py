@@ -21,11 +21,12 @@ def check():
     return True
 
 
-def load_config():
+def load_config(exp_root=None):
     default_config = state.experiment_config
 
     _config = manager.get_experiment_config(
-        default_config
+        default_config,
+        exp_root=exp_root
     )
 
     if state.verbose:

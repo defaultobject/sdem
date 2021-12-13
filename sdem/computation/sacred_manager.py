@@ -158,7 +158,7 @@ def prune_unfinished(bin_path: Path, experiment_config: dict):
         if status != "COMPLETED":
             delete_id(folder_path, bin_path)
 
-def get_sacred_experiment_folders(runs_root):
+def get_sacred_experiment_folders(runs_root: Path) -> list:
     return [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
 
 

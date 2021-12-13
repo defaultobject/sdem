@@ -51,11 +51,14 @@ def reset_import():
     builtins.__import__ = old_imp
 
 
-def get_experiment_config(default_config):
+def get_experiment_config(default_config, exp_root = None):
     """
     There are two levels of config: local and project.
         Local takes precedent over project.
     """
+
+    if exp_root is None:
+        exp_root = Path('.')
 
     _config = default_config
 
@@ -69,14 +72,14 @@ def get_experiment_config(default_config):
 
     # try load project config
     project_config = read_config(
-        _config["experiment_configs"]['project']
+        exp_root / _config["experiment_configs"]['project']
     )
     # update and overwrite _config
     _config = utils.add_dicts([_config, project_config])
 
     # try load local config
     local_config = read_config(
-        _config["experiment_configs"]['local']
+        exp_root / _config["experiment_configs"]['local']
     )
     # update and overwrite _config
     _config = utils.add_dicts([_config, local_config])
@@ -415,9 +418,12 @@ def substitute_config_in_str(s: str, config: dict) -> str:
 
     return formatted_s
     
-def get_sacred_runs_path(experiment_config) -> Path:
+def get_sacred_runs_path(experiment_config, exp_root=None) -> Path:
     """ Return a Path object to the sacred runs/ folder """
-    p =  Path(
+    if exp_root is None:
+        exp_root = Path('.')
+
+    p = exp_root / Path(
         experiment_config['template']['folder_structure']['scared_run_files']
     )
 
@@ -426,9 +432,12 @@ def get_sacred_runs_path(experiment_config) -> Path:
 
     return p
 
-def get_results_path(experiment_config) -> Path:
+def get_results_path(experiment_config, exp_root=None) -> Path:
     """ Return a Path object to the results folder """
-    p =  Path(
+    if exp_root is None:
+        exp_root = Path('.')
+
+    p = exp_root / Path(
         experiment_config['template']['folder_structure']['results']['root']
     )
 
@@ -441,10 +450,31 @@ def get_results_output_pattern(experiment_config) -> str:
     """ Return the expected results output format """
     return experiment_config['template']['folder_structure']['results']['file']
 
-def get_tmp_folder_path(experiment_config) -> Path:
+def get_tmp_folder_path(experiment_config, exp_root=None) -> Path:
     """ Return a Path object to the sdem temporary folder """
-    return Path(
+    if exp_root is None:
+        exp_root = Path('.')
+
+    p = exp_root / Path(
         experiment_config['template']['folder_structure']['tmp']
     )
+
+    if not(p.exists()):
+        logger.error(f'Folder {p} does not seem to exist - current working dir is {os.getcwd()}!')
+
+    return p
+
+def get_models_folder_path(experiment_config, exp_root=None) -> Path:
+    """ Return a Path object to the models folder """
+    if exp_root is None:
+        exp_root = Path('.')
+
+    p = exp_root / Path(
+        experiment_config['template']['folder_structure']['model_files']
+    )
+
+    if not(p.exists()):
+        logger.error(f'Folder {p} does not seem to exist - current working dir is {os.getcwd()}!')
+    return p
 
 
