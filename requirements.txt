@@ -7,3 +7,4 @@ scikit-learn
 tabulate==0.8.6
 jupyter
 black
+yaml
