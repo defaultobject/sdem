@@ -45,14 +45,13 @@ def delete_id(folder_path: Path, bin_path: Path):
     utils.move_dir_if_exists(folder_path, bin_path)
 
 
-def delete_result(f, name, tmp_folder_id):
+def delete_result(f, bin_path: Path):
+    name = f.name
+
     if state.verbose:
         logger.info(f"DELETING Result: {name}")
 
-    tmpl = template.get_template()
-    bin_dir = tmpl["bin_dir"]
-
-    utils.move_dir_if_exists(f, f"{bin_dir}/{tmp_folder_id}")
+    utils.move_dir_if_exists(f, bin_path)
 
 
 def order_experiment_folders_by_datetime(runs_root: Path, experiment_folders:list) -> list:
