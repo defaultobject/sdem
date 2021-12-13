@@ -3,6 +3,7 @@ from typing import List
 
 from .. import state
 from .. import decorators
+from . import manager
 
 import os
 
@@ -31,14 +32,9 @@ def local_run(configs_to_run: List[dict], experiment_config: dict, run_settings:
         run_command_tmpl = experiment_config['template']['run_command']['local_no_observer']
 
     for exp in configs_to_run:
-        name = exp["filename"]
-        order_id = exp["order_id"]
-
-        if state.verbose:
-            logger.info(f"Running experiment {name} {order_id}")
-
-        run_command = run_command_tmpl.format(
-            name=name, order=order_id
+        run_command = manager.substitute_config_in_str(
+            run_command_tmpl,
+            exp
         )
 
         if state.verbose:

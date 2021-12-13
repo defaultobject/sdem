@@ -62,10 +62,15 @@ def get_experiment_config(default_config, exp_root = None):
 
     _config = default_config
 
-    def read_config(file_name):
-        try:
-            c = utils.read_yaml(file_name)
-        except Exception as e:
+    def read_config(file_name: Path):
+        if file_name.exists():
+            try:
+                c = utils.read_yaml(file_name)
+            except Exception as e:
+                # The yaml file must not be valid
+                logger.info(e)
+                c = {}
+        else:
             c = {}
 
         return c
@@ -414,6 +419,7 @@ def substitute_config_in_str(s: str, config: dict) -> str:
         formatted_s = s.format(**dict_to_pass)
     except KeyError as e:
         logger.error(e)
+        raise e
 
 
     return formatted_s

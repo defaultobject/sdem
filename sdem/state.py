@@ -18,9 +18,10 @@ experiment_config = {
         'use_mongo': False,
         'experiment_file' : 'm_*.py',
         'run_command': {
-            'docker': 'cd models; python {name} {order}',
-            'local': 'cd models; python {name} {order}',
-            'local_no_observer': 'cd models; python {name} {order} --no-observer',
+            'docker': 'cd /home/app; cd models; python {filename} {order_id}',
+            'docker_no_observer': 'cd /home/app; cd models; python {filename} {order_id} --no-observer',
+            'local': 'cd models; python {filename} {order_id}',
+            'local_no_observer': 'cd models; python {filename} {order_id} --no-observer',
         },
         'folder_structure': {
             'model_files': 'models',

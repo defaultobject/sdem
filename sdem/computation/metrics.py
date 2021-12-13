@@ -32,7 +32,7 @@ def log_regression_scalar_metrics(
     true_Y = true_Y[non_nan_idx]
     pred_Y = pred_Y[non_nan_idx]
 
-    # log metrics
+    # metrics to compute
     metric_fns = {
         "mae": metrics.mean_absolute_error,
         "mse": metrics.mean_squared_error,
@@ -40,6 +40,7 @@ def log_regression_scalar_metrics(
         "r2_score": metrics.r2_score,
     }
 
+    # Go through each metric, compute and log using sacred
     metrics_results = {}
     for k in metric_fns.keys():
         metrics_results[k] = metric_fns[k](true_Y, pred_Y)
