@@ -394,6 +394,10 @@ def get_dispatched_fn(group: str, location: str, experiment_config: dict):
     return fn
 
 def substitute_config_in_str(s: str, config: dict) -> str:
+    """
+    s is a string to be formatted. This function finds the required 
+        keyword args and extracts them config and then formats s.
+    """
     # get values to format
     formatter = Formatter().parse(s)
 
@@ -412,6 +416,7 @@ def substitute_config_in_str(s: str, config: dict) -> str:
     return formatted_s
     
 def get_sacred_runs_path(experiment_config) -> Path:
+    """ Return a Path object to the sacred runs/ folder """
     p =  Path(
         experiment_config['template']['folder_structure']['scared_run_files']
     )
@@ -422,6 +427,7 @@ def get_sacred_runs_path(experiment_config) -> Path:
     return p
 
 def get_results_path(experiment_config) -> Path:
+    """ Return a Path object to the results folder """
     p =  Path(
         experiment_config['template']['folder_structure']['results']['root']
     )
@@ -432,9 +438,11 @@ def get_results_path(experiment_config) -> Path:
     return p
 
 def get_results_output_pattern(experiment_config) -> str:
+    """ Return the expected results output format """
     return experiment_config['template']['folder_structure']['results']['file']
 
 def get_tmp_folder_path(experiment_config) -> Path:
+    """ Return a Path object to the sdem temporary folder """
     return Path(
         experiment_config['template']['folder_structure']['tmp']
     )
