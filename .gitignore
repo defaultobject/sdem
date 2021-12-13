@@ -5,6 +5,7 @@
 **/runs/
 **/omniboard/
 **/jobs/
+**/sdem_bin/
 
 #checkpoints
 *.ckpt
