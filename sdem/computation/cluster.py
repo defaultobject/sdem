@@ -316,7 +316,7 @@ def cluster_run(configs_to_run, experiment_config, run_settings, location):
 
 def clean_up_cluster(location, experiment_config):
     cluster_config = experiment_config[location]
-    experiment_name = manager.get_experiment_name()
+    experiment_name = manager.get_experiment_name(experiment_config)
 
     if not (check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
         if state.verbose:
