@@ -80,9 +80,12 @@ def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = Fal
     return matched_results, matched_configs
 
 
-def index_of_match(elem, arr):
-    for i, a in enumerate(arr):
-        if elem == a:
+def index_of_match(config_columns, metric_columns, metric_cols, group_by_cols):
+    for i in range(len(metric_cols)):
+        all_metric_in = all(x in metric_columns for x in metric_cols[i])
+        all_config_in = all(x in config_columns for x in group_by_cols)
+
+        if all_metric_in and all_config_in:
             return i
     return None
 
@@ -98,7 +101,7 @@ def get_run_configs(exp_root):
 
     return config_list
 
-def get_results_df(exp_root: Path):
+def get_results_df(exp_root: Path, metric_cols, group_by_cols):
     """
     General Structure:
         - Goes through every sacred run folder
@@ -120,11 +123,13 @@ def get_results_df(exp_root: Path):
     # Get all folders that are correspond to sacred runs
     experiment_folders = sacred_manager.get_sacred_experiment_folders(runs_root)
 
+    num_groups = len(metric_cols)
+
     # each config may have a different set of columns.metrics etc 
     # So we group together all configs that have the same columns and metrics
     # Each item of these lists correspond to another group
-    columns = []
-    results_df = []
+    columns = [None for i in range(num_groups)]
+    results_df = [None for i in range(num_groups)]
 
     for run in experiment_folders:
         # load config and metrics
@@ -142,21 +147,25 @@ def get_results_df(exp_root: Path):
         # When there are multiply checkpoints we use the last one
         metrics = _get_last_checkpoints(metrics)
 
-        # Get config and metrics columns so we can find which group to add to 
+        # Construct list of all config keys and metric keys 
         config_columns = list(config.keys())
         metric_columns = list(metrics.keys())
-        column_names = config_columns + metric_columns
 
-        # Find group index
-        config_index = index_of_match(column_names, columns)
-
-        if config_index is None:
-            columns.append(column_names)
-
-        row = list(config.values()) + list(metrics.values())
+        # Each group corresponds to experiments with the same config_columns and metric_columns
+        #   We actually only group by the columns/rows that will be used in the final table
+        
+        config_index = index_of_match(config_columns, metric_columns, metric_cols, group_by_cols)
 
         if config_index is None:
-            results_df.append([row])
+            raise RuntimeError(f'Could not find group for experiment with config {config_columns} and metrics {metric_columns}')
+
+        # Subset config and metrics
+        row = [config[key] for key in group_by_cols] + [metrics[key] for key in metric_cols[config_index]]
+        column_list = group_by_cols + metric_cols[config_index]
+
+        if results_df[config_index] is None:
+            results_df[config_index] = [row]
+            columns[config_index] = column_list
         else:
             results_df[config_index].append(row)
 
@@ -228,7 +237,7 @@ def combine_mean_std(row, metric, decimal_places):
 
 def get_ordered_table(
     exp_root,
-    metrics: typing.List[str],
+    metrics: typing.List[typing.List[str]],
     group_by: typing.Optional[typing.List[str]] = None,
     results_by = None,
     decimal_places=2,
@@ -265,18 +274,21 @@ def get_ordered_table(
 
     # Load results for all experiments
     # Each element of the list corresponds to separate table 
-    all_results_df = get_results_df(exp_root)
+    all_results_df = get_results_df(exp_root, metrics, group_by)
+
+    if verbose:
+        print(f'Found {len(all_results_df)} groups')
 
     
     # Create one table for each group of configs found in all_results_df
     ordered_dfs =[]
-    for results_df in all_results_df:
+    for i, results_df in enumerate(all_results_df):
         if verbose:
             print(results_df.keys())
 
         # create actions to apply over a grouped table
         agg_dict = {}
-        for m in metrics:
+        for m in metrics[i]:
             agg_dict[m] = ['mean', 'std']
 
         if group_by is not None:
@@ -287,7 +299,7 @@ def get_ordered_table(
                     results_df[g] = results_df[g].apply(str)
 
             if scale is not None:
-                for m in metrics:
+                for m in metrics[i]:
                     if m in scale.keys():
                         results_df[m] = results_df[m]*scale[m]
 
@@ -318,8 +330,8 @@ def get_ordered_table(
             if select_filter:
                 ordered_df = select_results(ordered_df, select_filter)
 
-            #
-            for m in metrics:
+            # We can assume that metrics is a list of single element because we are stacking all the found groups together
+            for m in metrics[0]:
                 # For each metric combine the mean and std into a form like `mean \pm std`
                 ordered_df[f'{m}_score'] = ordered_df.apply(
                     lambda row: combine_mean_std(row, m, decimal_places), 
