@@ -441,8 +441,8 @@ def sync_with_cluster(location):
     """
     experiment_config = state.experiment_config
     cluster_config = experiment_config[location]
-    experiment_name = manager.get_experiment_name()
-    experiment_folder_name = manager.get_experiment_folder_name()
+    experiment_name = manager.get_experiment_name(experiment_config)
+    experiment_folder_name = manager.get_experiment_folder_name(experiment_config)
 
     if not (check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
         if state.verbose:
