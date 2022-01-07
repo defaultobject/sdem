@@ -147,7 +147,7 @@ def dict_is_subset(dict1, dict2):
             # if is a list then either the element is a list or we need to sum over the list
             if type(dict2[k]) is list:
                 # matching lists
-                if dict2[k] == dict1[k]:
+                if dict2[k] != dict1[k]:
                     is_subset = False
                     break
 

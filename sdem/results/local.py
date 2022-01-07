@@ -82,9 +82,11 @@ def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = Fal
 
 def index_of_match(config_columns, metric_columns, metric_cols, group_by_cols):
     for i in range(len(metric_cols)):
+        # check that all metric_cols and group_by_cols are valid metrics and columns
         all_metric_in = all(x in metric_columns for x in metric_cols[i])
         all_config_in = all(x in config_columns for x in group_by_cols)
 
+        #return group
         if all_metric_in and all_config_in:
             return i
     return None
@@ -157,6 +159,7 @@ def get_results_df(exp_root: Path, metric_cols, group_by_cols):
         config_index = index_of_match(config_columns, metric_columns, metric_cols, group_by_cols)
 
         if config_index is None:
+            breakpoint()
             raise RuntimeError(f'Could not find group for experiment with config {config_columns} and metrics {metric_columns}')
 
         # Subset config and metrics
