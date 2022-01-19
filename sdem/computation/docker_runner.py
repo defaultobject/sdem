@@ -7,7 +7,7 @@ from . import docker, manager
 import os
 
 
-def docker_run(configs_to_run, experiment_config, run_settings):
+def docker_run(configs_to_run, experiment_config, run_settings, location):
     """
     Runs all experiments in experiments sequentially on the local machine
     These experiments will be run using a file storage observed which will be converted
@@ -28,9 +28,7 @@ def docker_run(configs_to_run, experiment_config, run_settings):
     else:
         run_command_tmpl = experiment_config['template']['run_command']['docker_no_observer']
 
-
-
-    docker_config = experiment_config["docker"]
+    docker_config = experiment_config[location]
     docker_run_command = docker.get_docker_run_command(experiment_config, docker_config)
 
     for exp in configs_to_run:
