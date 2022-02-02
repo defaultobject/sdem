@@ -25,3 +25,18 @@ def list(ctx: typer.Context):
 
     state.console.print()
     state.console.print(table)
+
+@results_app.command()
+def summary(ctx: typer.Context):
+    state = ctx.obj
+
+    raise NotImplementedError()
+
+    # collect number of results per model file
+
+    # get min, max of the run dates
+
+    # get percentage of successful runs
+
+    # construct table and print
+

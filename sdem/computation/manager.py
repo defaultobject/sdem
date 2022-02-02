@@ -394,26 +394,39 @@ def construct_filter(_filter, filter_file):
 
 def get_dispatched_fn(group: str, location: str, experiment_config: dict):
     """
-    Find group function. We support two scenarios:
+    Group corresponds to the command that is being run (run, clean , sync, etc)
+    
+    There are multiple location types that we can act on (ie local, docker, cluster, etc)
+
+    The location must have an entry in the experiment config and have a key 'type'
+
+    For each group group function we support two scenarios:
         1) the dispatch key is directly location. 
         2) the dispatch key is experiment_config[location]["type"]. 
+
      This allows a location to have its own function and also allows
-        common code (ie for running on HPC cluster) to be used in multiple
-        locations
+        common code (ie for running on HPC cluster) to be used in multiple locations
+        and 2) takes precedence over 1) because then any dispatch_keys can be overwritten in the experiment_config 
+
     """
 
     fn = None
 
+    # Check if type is defined in experiment_config
     if (location in experiment_config.keys()) and ('type' in experiment_config[location]):
         location_type = experiment_config[location]["type"]
+
+        # if it is check if this can be used as the dispatch key
         if dispatch.check(group, location_type):
             fn = dispatch.dispatch(group, location_type)
-
-    if fn is None:
+    else:
+        # Check if location should be used as the dispatch key
         if dispatch.check(group, location):
             fn = dispatch.dispatch(group, location)
-        else:
-            raise RuntimeError(f'No {group} function found for location {location}')
+
+
+    if fn is None:
+        raise RuntimeError(f'No {group} function found for location {location}')
 
     return fn
 

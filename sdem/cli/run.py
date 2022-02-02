@@ -65,7 +65,9 @@ def run(
 
         fn = manager.get_dispatched_fn('run', location, experiment_config)
 
-        fn(state, configs_to_run, run_settings, location)
+        print(location)
+        print(fn)
+        #fn(state, configs_to_run, run_settings, location)
 
 
 @dispatch.register("run", "local")
