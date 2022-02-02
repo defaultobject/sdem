@@ -1,6 +1,5 @@
 """ Entry point to the sdem cli.  """
 import typer
-from loguru import logger
 
 from . import state  # global settings
 from . import template
@@ -35,14 +34,12 @@ def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
     It sets up the current state and sets global settings.
     """
     if verbose:
-        # logger.info("Will write verbose output")
         state.verbose = True
 
     if dry:
-        # logger.info("Will write verbose output")
         state.dry = True
 
-    # Ensure that model_log is running in the correct folder etc
+    # Ensure that sdem is running in the correct folder etc
     #   This is not required if setup is being called and so we simply check that the command is not setup
     if not (ctx.invoked_subcommand in commands_no_start_up_check):
         pass_flag = startup.check()
