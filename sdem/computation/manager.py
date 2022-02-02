@@ -177,6 +177,24 @@ def ensure_correct_fields_for_model_file_config(
     return config
 
 
+def get_model_files(state: 'State', model_root=None) -> List[Path]:
+    experiment_config: dict = state.experiment_config
+
+    if model_root is None:
+        model_root = Path(experiment_config['template']['folder_structure']['model_files'])
+    else:
+        model_root = Path(model_root)
+
+    experiment_file_pattern = experiment_config['template']['experiment_file']
+
+    # find all files in model_root that have the patten experiment_file_pattern
+    matched_files = model_root.glob(experiment_file_pattern) 
+
+    # only keep valid files
+    experiment_files = [f for f in matched_files if f.is_file()]
+
+    return experiment_files
+
 def get_configs_from_model_files(state: 'State', model_root = None, ignore_files: list = None) -> List[dict]:
     """
     Assumes that all configs are defined within the model files:
@@ -199,18 +217,7 @@ def get_configs_from_model_files(state: 'State', model_root = None, ignore_files
 
     with state.console.status("Loading model configs") as status:
 
-        if model_root is None:
-            model_root = Path(experiment_config['template']['folder_structure']['model_files'])
-        else:
-            model_root = Path(model_root)
-
-        experiment_file_pattern = experiment_config['template']['experiment_file']
-
-        # find all files in model_root that have the patten experiment_file_pattern
-        matched_files = model_root.glob(experiment_file_pattern) 
-
-        # only keep valid files
-        experiment_files = [f for f in matched_files if f.is_file()]
+        experiment_files = get_model_files(state, model_root)
 
 
         if len(experiment_files) == 0:

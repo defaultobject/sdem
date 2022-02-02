@@ -58,7 +58,11 @@ def run(
 
     # Run if not in dry mode
     if state.dry == False:
+        # We use dispatch to get the corresponding run function so that users can overwrite
+        #   and add there own functions
+
         fn = manager.get_dispatched_fn('run', location, experiment_config)
+
         fn(configs_to_run, experiment_config, run_settings, location)
 
 
