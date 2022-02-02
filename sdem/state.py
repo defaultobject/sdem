@@ -4,10 +4,6 @@ from rich.console import Console
 from pathlib import Path
 from loguru import logger
 
-verbose = False
-dry = False
-
-
 help_texts = {
     "location": "Location to run code e.g docker/local",
     "force_all": "Force all experiment to re run, otherwise will only run those that have not already completed",
@@ -84,5 +80,5 @@ class State:
         if "external_file" in experiment_config.keys():
             utils.load_mod(".", experiment_config["external_file"])
                 
-def get_state():
+def get_state(verbose, dry):
     return State(verbose=verbose, dry=dry)

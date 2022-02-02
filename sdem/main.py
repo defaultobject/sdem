@@ -36,13 +36,8 @@ def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
     This function will be run before every cli function
     It sets up the current state and sets global settings.
     """
-    if verbose:
-        state.verbose = True
 
-    if dry:
-        state.dry = True
-
-    config = state.get_state()
+    config = state.get_state(verbose, dry)
 
     config.console.print('Running in verbose mode')
     config.console.print('Running in dry mode')
