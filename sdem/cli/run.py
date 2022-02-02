@@ -1,28 +1,39 @@
 import typer
 
-from .. import state
 from .. import dispatch
 from ..computation import manager, local_runner, docker_runner, cluster, server
 from .. import utils
+from ..state import help_texts
 
 
 def run(
-    location: str = typer.Option("local", help=state.help_texts["location"]),
-    force_all: bool = typer.Option(True, help=state.help_texts["force_all"]),
+    ctx: typer.Context,
+    location: str = typer.Option("local", help=help_texts["location"]),
+    force_all: bool = typer.Option(True, help=help_texts["force_all"]),
     new_only: bool = typer.Option(False, help='Only run experiment that have no results'),
-    observer: bool = typer.Option(True, help=state.help_texts["observer"]),
-    filter: str = typer.Option("{}", help=state.help_texts["filter"]),
-    filter_file: str = typer.Option(None, help=state.help_texts["filter_file"]),
+    observer: bool = typer.Option(True, help=help_texts["observer"]),
+    filter: str = typer.Option("{}", help=help_texts["filter"]),
+    filter_file: str = typer.Option(None, help=help_texts["filter_file"]),
     print_configs: bool = typer.Option(False, help="Print Found Configs"),
     sbatch: bool = typer.Option(
         True, help="If true will automatically call sbatch to run files on cluster"
     ),
 ):
 
+    state = ctx.obj
+
+    state.console.rule('Running experiments')
+
     experiment_config = state.experiment_config
 
     # construct filter from passed input and file input
     filter_dict = manager.construct_filter(filter, filter_file)
+
+    if filter_dict != [{}]:
+        # if non-empty print
+        state.console.print('Only running experiments with:')
+        state.console.print(filter_dict)
+    breakpoint()
 
     # group together params so passing them around is easier
     run_settings = {

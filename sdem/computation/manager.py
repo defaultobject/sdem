@@ -51,45 +51,54 @@ def reset_import():
     builtins.__import__ = old_imp
 
 
-def get_experiment_config(default_config, exp_root = None):
+def get_experiment_config(state, default_config, exp_root = None):
     """
-    There are two levels of config: local and project.
-        Local takes precedent over project.
+    There are three levels of config: default, project and local.
+        Local takes precedent over project, and project over default.
     """
 
-    if exp_root is None:
-        exp_root = Path('.')
+    with state.console.status("Finding root") as status:
+        if exp_root is None:
+            exp_root = Path('.')
 
-    _config = default_config
+        state.console.print(f'Root is {exp_root}')
 
-    def read_config(file_name: Path):
-        if file_name.exists():
-            try:
-                c = utils.read_yaml(file_name)
-            except Exception as e:
-                # The yaml file must not be valid
-                logger.info(e)
+        _config = default_config
+
+        def read_config(file_name: Path):
+
+            status.update(f'Loading config {file_name}')
+
+            if file_name.exists():
+                try:
+                    c = utils.read_yaml(file_name)
+                    state.console.log(f'Loaded {file_name}')
+                except Exception as e:
+                    # The yaml file must not be valid
+                    logger.info(e)
+                    c = {}
+                    state.console.log(f'Error occured on {file_name} -- Skipping!')
+            else:
+                state.console.log(f'Config file {file_name} does not exist')
                 c = {}
-        else:
-            c = {}
 
-        return c
+            return c
 
-    # try load project config
-    project_config = read_config(
-        exp_root / _config["experiment_configs"]['project']
-    )
-    # update and overwrite _config
-    _config = utils.add_dicts([_config, project_config])
+        # try load project config
+        project_config = read_config(
+            exp_root / _config["experiment_configs"]['project']
+        )
+        # update and overwrite _config
+        _config = utils.add_dicts([_config, project_config])
 
-    # try load local config
-    local_config = read_config(
-        exp_root / _config["experiment_configs"]['local']
-    )
-    # update and overwrite _config
-    _config = utils.add_dicts([_config, local_config])
+        # try load local config
+        local_config = read_config(
+            exp_root / _config["experiment_configs"]['local']
+        )
+        # update and overwrite _config
+        _config = utils.add_dicts([_config, local_config])
 
-    return _config
+        return _config
 
 
 def get_experiment_folder_name(experiment_config: dict) -> str:

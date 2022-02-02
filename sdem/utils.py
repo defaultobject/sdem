@@ -21,6 +21,7 @@ YES_LIST = ("yes", "true", "t", "y", "1")
 NO_LIST = ("no", "false", "f", "n", "0")
 
 
+
 def _s(*args) -> str:
     """ 
     Concate all args. Notation follows from numpy np._c[]
