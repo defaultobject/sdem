@@ -52,6 +52,8 @@ def run(
 
     if len(configs_to_run) == 0:
         raise RuntimeError('No configs found to run! -- Exiting!')
+    else:
+        state.console.print(f'Running {len(configs_to_run)} experiments!')
 
     if print_configs:
         state.console.print(configs_to_run)
@@ -63,12 +65,12 @@ def run(
 
         fn = manager.get_dispatched_fn('run', location, experiment_config)
 
-        fn(configs_to_run, experiment_config, run_settings, location)
+        fn(state, configs_to_run, run_settings, location)
 
 
 @dispatch.register("run", "local")
-def local_run(configs_to_run, experiment_config, run_settings, location):
-    local_runner.local_run(configs_to_run, experiment_config, run_settings)
+def local_run(state, configs_to_run, run_settings, location):
+    local_runner.local_run(state, configs_to_run, run_settings)
 
 
 @dispatch.register("run", "docker")
