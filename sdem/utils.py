@@ -2,6 +2,7 @@ from pathlib import Path
 import shutil
 import typing
 import os
+import sys
 import yaml
 import itertools
 import hashlib
@@ -16,6 +17,8 @@ import typing
 import zipfile
 
 import pickle
+
+
 
 YES_LIST = ("yes", "true", "t", "y", "1")
 NO_LIST = ("no", "false", "f", "n", "0")
@@ -58,6 +61,7 @@ def str_to_dict(s: str) -> dict:
     return json.loads(s)
 
 
+@logger.catch(reraise=True)
 def json_from_file(f: str) -> dict:
     """ Read a json file into a dict """
     _dict = {}
@@ -204,6 +208,7 @@ def load_mod(file_path: Path):
 
     spec = importlib.util.spec_from_file_location("", file_name)
     foo = importlib.util.module_from_spec(spec)
+
     spec.loader.exec_module(foo)
 
     # revert back to orginal working directory

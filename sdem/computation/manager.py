@@ -177,7 +177,7 @@ def ensure_correct_fields_for_model_file_config(
     return config
 
 
-def get_configs_from_model_files(experiment_config: dict, model_root=None) -> List[dict]:
+def get_configs_from_model_files(state: 'State', model_root = None, ignore_files: list = None) -> List[dict]:
     """
     Assumes that all configs are defined within the model files:
         models/m_{name}.py
@@ -192,66 +192,81 @@ def get_configs_from_model_files(experiment_config: dict, model_root=None) -> Li
     If these are not provided they will be automatically generated.
     """
 
-    if model_root is None:
-        model_root = Path(experiment_config['template']['folder_structure']['model_files'])
-    else:
-        model_root = Path(model_root)
+    if ignore_files is None:
+        ignore_files = []
 
-    experiment_file_pattern = experiment_config['template']['experiment_file']
+    experiment_config: dict = state.experiment_config
 
-    # find all files in model_root that have the patten experiment_file_pattern
-    matched_files = model_root.glob(experiment_file_pattern) 
+    with state.console.status("Loading model configs") as status:
 
-    # only keep valid files
-    experiment_files = [f for f in matched_files if f.is_file()]
+        if model_root is None:
+            model_root = Path(experiment_config['template']['folder_structure']['model_files'])
+        else:
+            model_root = Path(model_root)
 
+        experiment_file_pattern = experiment_config['template']['experiment_file']
 
-    if len(experiment_files) == 0:
-        raise RuntimeError(
-            f"No models found in {model_root.resolve()} with pattern {experiment_file_pattern}"
-        )
+        # find all files in model_root that have the patten experiment_file_pattern
+        matched_files = model_root.glob(experiment_file_pattern) 
 
-    # Go through every experiment file and store the found configs
-
-    experiment_config_arr = []
-
-    # enable the custom hook to avoid uncessary import errors
-    set_custom_import()
-
-    for experiment in experiment_files:
-
-        if state.verbose:
-            logger.info(f"Loading configs from {experiment}")
-
-        # If an error occurs skip and continue
-        #    logger does not exit when it catches an execption, just prints it
-        @logger.catch
-        def load():
-            mod = utils.load_mod(experiment)
-
-            # each model file must define an experiment variable called ex
-            # use ex to get the configs
-            experiment_configs = mod.ex.config_function()
-
-            for i, config in enumerate(experiment_configs):
-                config = ensure_correct_fields_for_model_file_config(
-                    experiment, config, i
-                )
-                experiment_config_arr.append(config)
-
-        #store here so we can revert
-        cwd = os.getcwd()
-
-        load()
-
-        # revert back to orginal working directory
-        os.chdir(cwd)
+        # only keep valid files
+        experiment_files = [f for f in matched_files if f.is_file()]
 
 
-    # revert back to default import 
-    reset_import()
+        if len(experiment_files) == 0:
+            raise RuntimeError(
+                f"No models found in {model_root.resolve()} with pattern {experiment_file_pattern}"
+            )
 
-    return experiment_config_arr
+        # Go through every experiment file and store the found configs
+
+        experiment_config_arr = []
+
+        # enable the custom hook to avoid uncessary import errors
+        set_custom_import()
+
+        for experiment in experiment_files:
+            status.update(f"Loading configs from {experiment}")
+
+            if experiment.name in ignore_files:
+                # skip
+                status.console.log(f'Ignoring {experiment}!')
+                continue
+
+            # If an error occurs skip and continue
+            #    logger does not exit when it catches an execption, just prints it
+            def load():
+                try:
+                    mod = utils.load_mod(experiment)
+
+                    # each model file must define an experiment variable called ex
+                    # use ex to get the configs
+                    experiment_configs = mod.ex.config_function()
+
+                    for i, config in enumerate(experiment_configs):
+                        config = ensure_correct_fields_for_model_file_config(
+                            experiment, config, i
+                        )
+                        experiment_config_arr.append(config)
+
+                    status.console.log(f'Loaded configs from {experiment}')
+                except Exception as e:
+                    state.console.print(e)
+                    status.console.log(f'!Error loading configs from {experiment} -- Skipping!')
+
+            #store here so we can revert
+            cwd = os.getcwd()
+
+            load()
+
+            # revert back to orginal working directory
+            os.chdir(cwd)
+
+
+        # revert back to default import 
+        reset_import()
+
+        return experiment_config_arr
 
 
 def get_valid_experiment_ids(experiment_config):
@@ -259,7 +274,7 @@ def get_valid_experiment_ids(experiment_config):
     return [c["experiment_id"] for c in configs]
 
 
-def filter_configs(experiment_configs, filter_dict, run_new_only):
+def filter_configs(state, experiment_configs, filter_dict, run_new_only):
     """
     removes configs from experiment_configs that do not match filter_dict
     """
@@ -298,7 +313,7 @@ def filter_configs(experiment_configs, filter_dict, run_new_only):
 
 
     if state.verbose:
-        logger.info(
+        state.console.print(
             utils._s(
                 "number of experiments before filter: ",
                 len(experiment_configs),

@@ -1,4 +1,5 @@
 import typer
+from typing import List
 
 from .. import dispatch
 from ..computation import manager, local_runner, docker_runner, cluster, server
@@ -18,6 +19,7 @@ def run(
     sbatch: bool = typer.Option(
         True, help="If true will automatically call sbatch to run files on cluster"
     ),
+    ignore: List[str] = typer.Option([], help="List of file to not get configs from.")
 ):
 
     state = ctx.obj
@@ -33,7 +35,6 @@ def run(
         # if non-empty print
         state.console.print('Only running experiments with:')
         state.console.print(filter_dict)
-    breakpoint()
 
     # group together params so passing them around is easier
     run_settings = {
@@ -43,13 +44,17 @@ def run(
     }
 
     # load all experiment configs 
-    configs_to_run = manager.get_configs_from_model_files(experiment_config)
+    configs_to_run = manager.get_configs_from_model_files(state, ignore_files=ignore)
+
 
     # remove configs that do not match filter
-    configs_to_run = manager.filter_configs(configs_to_run, filter_dict, new_only)
+    configs_to_run = manager.filter_configs(state, configs_to_run, filter_dict, new_only)
+
+    if len(configs_to_run) == 0:
+        raise RuntimeError('No configs found to run! -- Exiting!')
 
     if print_configs:
-        utils.print_dict(configs_to_run)
+        state.console.print(configs_to_run)
 
     # Run if not in dry mode
     if state.dry == False:
