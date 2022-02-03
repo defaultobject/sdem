@@ -5,36 +5,27 @@ from .. import dispatch
 from ..computation import manager, cluster, mongo, server
 
 
-def sync(location: str = typer.Option("local", help=state.help_texts["location"])):
-    # load experiment configs and filter
+def sync(ctx: typer.Context, location: str = typer.Option("local", help=state.help_texts["location"])):
+    state = ctx.obj
     experiment_config = state.experiment_config
 
-    # if cluster
-    if location in experiment_config.keys():
-        if experiment_config[location]["type"] == "cluster":
-            fn = dispatch.dispatch("sync", "cluster")
-        elif experiment_config[location]["type"] == "server":
-            fn = dispatch.dispatch("sync", "server")
-        else:
-            # get relevant run function
-            fn = dispatch.dispatch("sync", location)
+    fn = manager.get_dispatched_fn('sync', location, experiment_config)
 
-    else:
-        # get relevant run function
-        fn = dispatch.dispatch("sync", location)
-
-    fn(location)
+    fn(state, location)
 
 
 @dispatch.register("sync", "local")
 def local_sync(location):
-    mongo.sync()
+    raise NotImplementedError()
+    #mongo.sync()
 
 
 @dispatch.register("sync", "cluster")
-def cluster_sync(location):
-    cluster.sync_with_cluster(location)
+def cluster_sync(state, location):
+    state.console.rule(f'Syncing with cluster -- {location}')
+    cluster.sync_with_cluster(state, location)
 
 @dispatch.register("sync", "server")
-def cluster_sync(location):
+def cluster_sync(state, location):
+    raise NotImplementedError()
     server.sync(location)

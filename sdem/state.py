@@ -79,6 +79,12 @@ class State:
         raise NotImplementedError()
         if "external_file" in experiment_config.keys():
             utils.load_mod(".", experiment_config["external_file"])
+
+    def error(self, s: str):
+        self.console.print(f'[red bold]{s}[/]')
+
+    def success(self, s: str):
+        self.console.print(f'[greeb bold]{s}[/]')
                 
 def get_state(verbose, dry):
     return State(verbose=verbose, dry=dry)

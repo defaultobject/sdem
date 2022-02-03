@@ -8,6 +8,7 @@ from loguru import logger
 
 
 def setup():
+    raise NotImplementedError()
     # ensure we are not already in an experiment
     if startup.check():
         if state.verbose:

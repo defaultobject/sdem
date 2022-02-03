@@ -19,7 +19,8 @@ def run(
     sbatch: bool = typer.Option(
         True, help="If true will automatically call sbatch to run files on cluster"
     ),
-    ignore: List[str] = typer.Option([], help="List of file to not get configs from.")
+    ignore: List[str] = typer.Option([], help="List of file to not get configs from."),
+    limit: int = typer.Option(None, help="Limit number of runs")
 ):
 
     state = ctx.obj
@@ -50,8 +51,13 @@ def run(
     # remove configs that do not match filter
     configs_to_run = manager.filter_configs(state, configs_to_run, filter_dict, new_only)
 
+    if limit is not None:
+        state.console.print(f'Limiting to {limit} experiments')
+        configs_to_run = configs_to_run[:limit]
+
     if len(configs_to_run) == 0:
-        raise RuntimeError('No configs found to run! -- Exiting!')
+        state.console.print('[bold red]No configs found to run! -- Exiting![/]')
+        exit()
     else:
         state.console.print(f'Running {len(configs_to_run)} experiments!')
 
@@ -65,26 +71,27 @@ def run(
 
         fn = manager.get_dispatched_fn('run', location, experiment_config)
 
-        print(location)
-        print(fn)
-        #fn(state, configs_to_run, run_settings, location)
+        fn(state, configs_to_run, run_settings, location)
 
 
 @dispatch.register("run", "local")
 def local_run(state, configs_to_run, run_settings, location):
+    state.console.rule('Running locally')
     local_runner.local_run(state, configs_to_run, run_settings)
 
 
 @dispatch.register("run", "docker")
-def docker_run(configs_to_run, experiment_config, run_settings, location):
-    docker_runner.docker_run(configs_to_run, experiment_config, run_settings, location)
-
+def docker_run(state, configs_to_run, run_settings, location):
+    state.console.rule(f'Running on docker -- {location}')
+    docker_runner.docker_run(state, configs_to_run, run_settings, location)
 
 @dispatch.register("run", "cluster")
-def cluster_run(configs_to_run, experiment_config, run_settings, location):
-    cluster.cluster_run(configs_to_run, experiment_config, run_settings, location)
+def cluster_run(state, configs_to_run, run_settings, location):
+    state.console.rule(f'Running on cluster {location}')
+    cluster.cluster_run(state, configs_to_run, run_settings, location)
 
 
 @dispatch.register("run", "server")
-def server_run(configs_to_run, experiment_config, run_settings, location):
+def server_run(state, configs_to_run, run_settings, location):
+    state.console.rule('Running on server')
     server.server_run(configs_to_run, run_settings, location)

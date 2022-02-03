@@ -1,6 +1,5 @@
 from loguru import logger
 
-from .. import state
 from .. import decorators
 from ..utils import ask_permission
 from .. import template
@@ -10,11 +9,12 @@ from . import manager, sacred_manager, cluster
 import os
 
 
-def clean(experiment_config):
+def clean(state):
     """
     We do not delete any experiments, only move them to a temporal folder.
     """
 
+    experiment_config = state.experiment_config
     bin_path = manager.make_and_get_tmp_delete_folder(experiment_config)
 
     use_mongo = False

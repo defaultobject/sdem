@@ -1,6 +1,5 @@
 from loguru import logger
 
-from .. import state
 from .. import decorators
 from .. import template
 from .. import utils
@@ -78,7 +77,7 @@ def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
     return False
 
 
-def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config):
+def create_slurm_scripts(state, configs_to_run, run_settings, experiment_name, cluster_config):
     """
     Creates slurm scripts by:
         Creates a unique folder in jobs for every file in configs_to_run
@@ -160,7 +159,7 @@ def create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_
 
 
 def compress_files_for_cluster(
-    configs_to_run, run_settings, experiment_name, cluster_config
+    state, configs_to_run, run_settings, experiment_name, cluster_config
 ):
     tmpl = template.get_template()
 
@@ -210,7 +209,7 @@ def compress_files_for_cluster(
 
 
 def move_files_to_cluster(
-    configs_to_run, run_settings, experiment_name, cluster_config
+    state, configs_to_run, run_settings, experiment_name, cluster_config
 ):
 
     # move zip file to cluster
@@ -250,7 +249,7 @@ def move_files_to_cluster(
     os.system(run_ssh_script)
 
 
-def run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config):
+def run_on_cluster(state, configs_to_run, run_settings, experiment_name, cluster_config):
     remotehost = "{user}@{host}".format(
         user=cluster_config["user"], host=cluster_config["host"]
     )
@@ -275,7 +274,7 @@ def run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config
     os.system(run_ssh_script)
 
 
-def cluster_run(configs_to_run, experiment_config, run_settings, location):
+def cluster_run(state, configs_to_run, run_settings, location):
     """
     Checks if experiment is not already on cluster
         if so then exit
@@ -287,42 +286,43 @@ def cluster_run(configs_to_run, experiment_config, run_settings, location):
         Move files to cluster
         Run slurm scripts
     """
+    experiment_config = state.experiment_config
     cluster_config = experiment_config[location]
     experiment_name = manager.get_experiment_name(experiment_config)
 
     # Only run if the experiment is already on the cluster
     if check_if_experiment_exists_on_cluster(experiment_name, cluster_config):
-        if state.verbose:
-            logger.info(f"Experiment is already on cluster - {location}, exiting!")
+        state.error(f"[red bold]Experiment is already on cluster - {location}, exiting![/]")
 
         return None
 
 
     # Create HPC slurm scripts using slurmjobs
-    create_slurm_scripts(configs_to_run, run_settings, experiment_name, cluster_config)
+    create_slurm_scripts(state, configs_to_run, run_settings, experiment_name, cluster_config)
 
     # Zip all files to move to the cluster
     compress_files_for_cluster(
-        configs_to_run, run_settings, experiment_name, cluster_config
+        state, configs_to_run, run_settings, experiment_name, cluster_config
     )
 
     # Move zip to the cluster and unwrap
-    move_files_to_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
+    move_files_to_cluster(state, configs_to_run, run_settings, experiment_name, cluster_config)
 
     # Only run experiments on cluster if run_sbatch flag is true
     if run_settings["run_sbatch"]:
-        run_on_cluster(configs_to_run, run_settings, experiment_name, cluster_config)
+        run_on_cluster(state, configs_to_run, run_settings, experiment_name, cluster_config)
 
 
-def clean_up_cluster(location, experiment_config):
+def clean_up_cluster(location, state):
+    experiment_config = state.experiment_config
+
     cluster_config = experiment_config[location]
     experiment_name = manager.get_experiment_name(experiment_config)
 
     if not (check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
-        if state.verbose:
-            logger.info(
-                f"Experiment {experiment_name} is not on cluster - {location}, nothing to clean!"
-            )
+        state.success(
+            f"Experiment {experiment_name} is not on cluster - {location}, nothing to clean!"
+        )
 
         return None
 
@@ -340,15 +340,16 @@ def clean_up_cluster(location, experiment_config):
     )
 
     if state.verbose:
-        logger.info(f"Cleaning {remotehost}")
+        state.console.print(f"Cleaning {remotehost}")
 
     try:
         os.system(script)
-    except Exception as e:
+        state.success('Cleaned up')
+    except Exception:
         if state.verbose:
-            print(f"An error occured while cleaning - {remotehost}")
+            state.console.log(f"An error occured while cleaning - {remotehost}")
 
-        print(e)
+        state.console.print_exception(show_locals=True)
 
 
 def sync_files(folders_to_sync, folder_origin, cluster_config):
@@ -365,15 +366,15 @@ def sync_files(folders_to_sync, folder_origin, cluster_config):
     os.system(sync_script_f)
 
 
-def local_sync(folder_origin):
+def local_sync(state, folder_origin):
     # sync files from cluster_tmp to experiment folders
     folders_to_sync = FOLDERS_TO_SYNC
 
     for folder in folders_to_sync:
         _origin = folder_origin + folder
         _dest = folder
-        if state.verbose:
-            print(f"local sync: {_origin} -> {_dest}")
+
+        state.console.print(f"local sync: {_origin} -> {_dest}")
 
         _script = LOCAL_SYNC_SCRIPT.format(folder_dest=_origin, folder_origin=_dest)
         os.system(_script)
@@ -398,7 +399,7 @@ def get_folders_to_sync(experiment_name, cluster_config):
     return folders_to_sync
 
 
-def fix_run_ids(experiment_name):
+def fix_run_ids(state, experiment_name):
     """
     Sacred runs start from 1. To merge cluster runs and local runs we simply
         get the max run id locally, rename all cluster runs to add on the max id and
@@ -413,8 +414,7 @@ def fix_run_ids(experiment_name):
 
     if not (os.path.exists(remote_root)):
         # it seems nothing was synced and so cluster_temp does not exist
-        if state.verbose:
-            logger.info("No sacred runs were synced, so no run ids to fix, continuing")
+        state.console.print("No sacred runs were synced, so no run ids to fix, continuing")
         return
 
     utils.mkdir_if_not_exists(runs_root)
@@ -433,8 +433,7 @@ def fix_run_ids(experiment_name):
         os.system("mv {filepath} models/runs/{_id}".format(filepath=filepath, _id=_id))
 
 
-@decorators.run_if_not_dry
-def sync_with_cluster(location):
+def sync_with_cluster(state, location):
     """
     We sync from the cluster to cluster_temp and then locally sync from cluster_temp to the experiment folders.
     This is to get around the fact the experiment folder on the cluster may be prefixed.
@@ -445,8 +444,7 @@ def sync_with_cluster(location):
     experiment_folder_name = manager.get_experiment_folder_name(experiment_config)
 
     if not (check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
-        if state.verbose:
-            logger.info(f"No experiment to sync on cluster - {location}, exiting!")
+        state.error(f"No experiment to sync on cluster - {location}, exiting!")
 
         return None
 
@@ -460,13 +458,13 @@ def sync_with_cluster(location):
     sync_files(
         folders_to_sync, experiment_folder_name + "/cluster_temp/", cluster_config
     )
-    local_sync("cluster_temp/" + experiment_name + "/")
+    local_sync(state, "cluster_temp/" + experiment_name + "/")
 
     folder_origin = experiment_folder_name + "/cluster_temp/"
     sync_files(experiment_name + "/models/", folder_origin, cluster_config)
 
     # fix sacred run ids
-    fix_run_ids(experiment_name)
+    fix_run_ids(state, experiment_name)
 
     # clean up
     os.system("rm -rf cluster_temp")
