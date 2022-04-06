@@ -2,7 +2,7 @@
 import os
 import pickle
 from ..computation import manager, sacred_manager, startup
-from .. import utils, template
+from .. import utils, template, state
 import pandas as pd
 import json
 from loguru import logger
@@ -30,15 +30,18 @@ def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = Fal
     # Ensure root is a path 
     exp_root = Path(exp_root)
 
+
     # load experiment configs
-    experiment_config = startup.load_config(exp_root=exp_root)
+    config = state.get_state(True, True)
+    config.load_experiment_config()
+    experiment_config = config.experiment_config
 
     # Load all configs
 
     model_path = manager.get_models_folder_path(experiment_config, exp_root=exp_root)
 
     config_arr = manager.get_configs_from_model_files(
-        experiment_config,
+        config,
         model_root= model_path
     )
 
@@ -116,8 +119,9 @@ def get_results_df(exp_root: Path, metric_cols, group_by_cols):
         If there are multiple checkpoints then the last one is used
     """
 
-    # load experiment configs
-    experiment_config = startup.load_config(exp_root=exp_root)
+    config = state.get_state(True, True)
+    config.load_experiment_config()
+    experiment_config = config.experiment_config
 
     # Get sacred runs path
     runs_root = manager.get_sacred_runs_path(experiment_config, exp_root=exp_root)

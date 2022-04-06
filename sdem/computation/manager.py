@@ -276,8 +276,8 @@ def get_configs_from_model_files(state: 'State', model_root = None, ignore_files
         return experiment_config_arr
 
 
-def get_valid_experiment_ids(experiment_config):
-    configs = get_configs_from_model_files(experiment_config)
+def get_valid_experiment_ids(state):
+    configs = get_configs_from_model_files(state)
     return [c["experiment_id"] for c in configs]
 
 

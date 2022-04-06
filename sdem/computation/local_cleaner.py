@@ -23,12 +23,12 @@ def clean(state):
         raise NotImplementedError()
 
     ask_permission(
-        "Prune experiment files?", lambda: sacred_manager.prune_experiments(bin_path, experiment_config)
+        "Prune experiment files?", lambda: sacred_manager.prune_experiments(state, bin_path, experiment_config)
     )
 
-    ask_permission("Fix Run IDs?", lambda: sacred_manager.fix_filestorage_ids(experiment_config))
+    ask_permission("Fix Run IDs?", lambda: sacred_manager.fix_filestorage_ids(state, experiment_config))
 
-    ask_permission("Prune results files?", lambda: sacred_manager.prune_results(bin_path, experiment_config))
+    ask_permission("Prune results files?", lambda: sacred_manager.prune_results(state, bin_path, experiment_config))
 
     if use_mongo:
         ask_permission("Re-sync local files with mongo?", lambda: None)

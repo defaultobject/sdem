@@ -4,8 +4,6 @@ import typer
 from . import state  # global settings
 from . import template
 
-from .computation import startup
-
 from .cli import run, dvc, clean, vis, sync, setup, rollback, install, info
 import warnings
 

@@ -30,7 +30,6 @@ import copy
 
 from .. import utils
 from .. import template
-from .. import state
 from . import manager
 
 from loguru import logger
@@ -39,8 +38,7 @@ from loguru import logger
 def delete_id(folder_path: Path, bin_path: Path):
     _id = folder_path.name
 
-    if state.verbose:
-        logger.info(f"DELETING ID: {_id} -> {bin_path}")
+    logger.info(f"DELETING ID: {_id} -> {bin_path}")
 
     utils.move_dir_if_exists(folder_path, bin_path)
 
@@ -48,8 +46,7 @@ def delete_id(folder_path: Path, bin_path: Path):
 def delete_result(f, bin_path: Path):
     name = f.name
 
-    if state.verbose:
-        logger.info(f"DELETING Result: {name}")
+    logger.info(f"DELETING Result: {name}")
 
     utils.move_dir_if_exists(f, bin_path)
 
@@ -118,7 +115,7 @@ def delete_empty_experiments(runs_root: Path, experiment_folders: list, bin_path
     return _experiment_folders
 
 
-def prune_unfinished(bin_path: Path, experiment_config: dict):
+def prune_unfinished(state, bin_path: Path, experiment_config: dict):
     """
     Go through every experiment and move to bin_path if:
         - the experiment folder is empty 
@@ -161,7 +158,7 @@ def get_sacred_experiment_folders(runs_root: Path) -> list:
     return [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
 
 
-def prune_experiments(bin_path: Path, experiment_config:dict):
+def prune_experiments(state, bin_path: Path, experiment_config:dict):
     """
     Removes all local experiment folders that do not have a valid config id and removes all but the last of each config_id
 
@@ -170,7 +167,7 @@ def prune_experiments(bin_path: Path, experiment_config:dict):
 
     # First remove all experiments that have not finished running 
     #   i.e they are empty or their status !- COMPLETED
-    prune_unfinished(bin_path, experiment_config)
+    prune_unfinished(state, bin_path, experiment_config)
 
     # Load all sacred runs
     runs_root = manager.get_sacred_runs_path(experiment_config)
@@ -181,7 +178,7 @@ def prune_experiments(bin_path: Path, experiment_config:dict):
     all_experiment_ids = get_experiment_ids_from_folders(runs_root, experiment_folders)
 
     # Get all experiments_ids from configs
-    valid_experiment_ids = manager.get_valid_experiment_ids(experiment_config)
+    valid_experiment_ids = manager.get_valid_experiment_ids(state)
 
     # Remove experiments that do not have a valid id and have been run multiple times, 
     #   saving only the most recent one
@@ -215,7 +212,7 @@ def prune_experiments(bin_path: Path, experiment_config:dict):
             delete_id(folder_path, bin_path)
 
 
-def prune_results(bin_path: Path, experiment_config: dict):
+def prune_results(state, bin_path: Path, experiment_config: dict):
     """
     Collects all configs
     Creates all valid results file
@@ -223,7 +220,7 @@ def prune_results(bin_path: Path, experiment_config: dict):
 
     """
     results_root = manager.get_results_path(experiment_config)
-    all_configs = manager.get_configs_from_model_files(experiment_config)
+    all_configs = manager.get_configs_from_model_files(state)
 
     result_output_pattern = manager.get_results_output_pattern(experiment_config)
 
@@ -240,7 +237,7 @@ def prune_results(bin_path: Path, experiment_config: dict):
             delete_result(results_root / res, bin_path)
 
 
-def fix_filestorage_ids(experiment_config):
+def fix_filestorage_ids(state, experiment_config):
     """
     Goes through the data twice, once to rename to a temp name to avoid conflict and then to rename to the correct format
     """
