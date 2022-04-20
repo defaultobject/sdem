@@ -227,7 +227,14 @@ def read_yaml(file_name):
     return ec
 
 
+class Split():
+    pass
+
 def get_all_permutations(options):
+    # python passes dicts around by reference, this can cause some issues as we are looping over the dicts and editing them
+    # therefore create a deep copy to break the reference
+    options = copy.deepcopy(options)
+
     if type(options) is list:
         dict_list = []
         for opt in options:
@@ -235,10 +242,37 @@ def get_all_permutations(options):
 
         return dict_list
     else:
-        # get all permutations of options
-        keys, values = zip(*options.items())
-        permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
-        return permutations_dicts
+        # check if any Split keys
+        if any([isinstance(k, Split) for k in options.keys()]):
+            # for each split we construct an array of configs, one for each element in the split
+            # We recursively apply split each element
+
+            option_list = []
+
+            options_copy = copy.deepcopy(options)
+
+            for k in options_copy.keys():
+                if isinstance(k, Split):
+                    # split
+                    config_to_split = options_copy.pop(k)
+                    for _config in config_to_split:
+                        new_config = add_dicts(
+                            [
+                                options_copy,
+                                _config
+                            ],
+                            deepcopy=True
+                        )
+                        option_list.append(new_config)
+
+                    break
+
+            return get_all_permutations(option_list)
+        else:
+            # get all permutations of options
+            keys, values = zip(*options.items())
+            permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
+            return permutations_dicts
 
 
 def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):

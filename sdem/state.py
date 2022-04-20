@@ -1,5 +1,6 @@
 from .computation import manager
 
+import rich
 from rich.console import Console
 from pathlib import Path
 from loguru import logger
