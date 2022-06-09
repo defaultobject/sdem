@@ -1,9 +1,7 @@
 from sklearn import metrics
 import numpy as np
 
-def log_regression_scalar_metrics(
-    ex, true_Y, pred_Y, log=True, prefix=None
-):
+def fix_shapes_and_nans(true_Y, pred_Y):
 
     # fix shapes
     N = true_Y.shape[0]
@@ -19,6 +17,33 @@ def log_regression_scalar_metrics(
 
     true_Y = true_Y[non_nan_idx]
     pred_Y = pred_Y[non_nan_idx]
+
+    return true_Y, pred_Y
+
+def log_binary_scalar_metrics(
+    ex, true_Y, pred_Y, log=True, prefix=None
+):
+    true_Y, pred_Y = fix_shapes_and_nans(true_Y, pred_Y)
+
+    metrics_results = {}
+
+    fpr, tpr, thresholds = metrics.roc_curve(true_Y, pred_Y, pos_label=1)
+
+    metrics_results['fpr'] = fpr.tolist()
+    metrics_results['tpr'] = tpr.tolist()
+    metrics_results['auc'] = metrics.auc(fpr, tpr)
+
+    # log 
+    name = "{prefix}_{metric}".format(prefix=prefix, metric='auc')
+    ex.log_scalar(name, metrics_results['auc'])
+
+    return metrics_results
+
+def log_regression_scalar_metrics(
+    ex, true_Y, pred_Y, log=True, prefix=None
+):
+
+    true_Y, pred_Y = fix_shapes_and_nans(true_Y, pred_Y)
 
     # metrics to compute
     metric_fns = {
