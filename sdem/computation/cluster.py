@@ -111,14 +111,14 @@ def create_slurm_scripts(state, configs_to_run, run_settings, experiment_name, c
         # assume that every config has the same sif file
         if "sif" in configs_of_file[0].keys():
             # run using singularity defined in model file
-            run_command = "singularity run {sif_location}".format(
+            run_command = "singularity run --nv {sif_location}".format(
                 sif_location=configs_of_file[0]["sif"]
             )
             run_command = run_command + " python {filename}"
 
         elif "sif" in cluster_config.keys():
             # run using singularity
-            run_command = "singularity run {sif_location}".format(
+            run_command = "singularity run --nv {sif_location}".format(
                 sif_location=cluster_config["sif"]
             )
             run_command = run_command + " python {filename}"

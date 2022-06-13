@@ -17,12 +17,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=[
-        'typer==0.3.2',
-        'loguru==0.5.3',
-        'slurmjobs==0.0.15',
-        'sacred==0.8.1',
-        'seml==0.2.4',
-    ],
     scripts=["cli/sdem"],
 )

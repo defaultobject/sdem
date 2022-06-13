@@ -1,11 +1,10 @@
-typer==0.3.2
-loguru==0.5.3
-slurmjobs==0.0.15
-sacred==0.8.1
-seml==0.2.4
+typer
+loguru
+slurmjobs
+git+https://github.com/IDSIA/sacred
+seml
 scikit-learn
-tabulate==0.8.6
+tabulate
 jupyter
 black
-yaml
 rich
