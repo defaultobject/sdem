@@ -14,10 +14,8 @@ from pathlib import Path
 import numpy as np
 
 import os
-import seml.queuing
 
 import slurmjobs
-from slurmjobs.args import NoArgVal
 import slurmjobs.util as uti
 
 import shutil
