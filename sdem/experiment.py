@@ -10,6 +10,8 @@ import sys
 from .computation import manager
 from .computation import metrics
 
+from .utils import pass_unknown_kargs
+
 import inspect
 import os
 
@@ -35,7 +37,7 @@ class Experiment(SacredExperiment):
     def configs(self, function):
         self.config_function = function
 
-    def run_config(self, function, config, use_observer=True):
+    def run_config(self, function, config, use_observer=True, **kwargs):
         self.observers = []  # reset observed
         self.configurations = []
 
@@ -43,7 +45,7 @@ class Experiment(SacredExperiment):
             self.observers.append(FileStorageObserver("runs"))
 
         self.add_config(config)
-        captured_function = self.main(lambda: function(config))
+        captured_function = self.main(lambda: function(config, **kwargs))
 
         #call sacred run method
         self.run(captured_function.__name__)
@@ -78,7 +80,9 @@ class Experiment(SacredExperiment):
         parser = argparse.ArgumentParser()
         parser.add_argument('i', type=int, default=-1, help='Experiment id to run')
         parser.add_argument('--no-observer', action='store_true', default=False, help='Run without observer')
-        input_args = parser.parse_args()
+        input_args, unknown_args = parser.parse_known_args()
+
+        unknown_kwargs = pass_unknown_kargs(unknown_args)
 
         use_observer = not(input_args.no_observer)
         i = input_args.i
@@ -91,11 +95,11 @@ class Experiment(SacredExperiment):
                 config = manager.ensure_correct_fields_for_model_file_config(
                     filename, config, i
                 )
-                self.run_config(function, config, use_observer=use_observer)
+                self.run_config(function, config, use_observer=use_observer, **unknown_kwargs)
 
         else:
             # Run specific experiment
             config = manager.ensure_correct_fields_for_model_file_config(
                 filename, configs[i], i
             )
-            self.run_config(function, config, use_observer=use_observer)
+            self.run_config(function, config, use_observer=use_observer, **unknown_kwargs)

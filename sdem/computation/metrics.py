@@ -21,21 +21,43 @@ def fix_shapes_and_nans(true_Y, pred_Y):
     return true_Y, pred_Y
 
 def log_binary_scalar_metrics(
-    ex, true_Y, pred_Y, log=True, prefix=None
+    ex, true_Y, pred_Y, log=True, prefix=None, cutoff = 0.5
 ):
     true_Y, pred_Y = fix_shapes_and_nans(true_Y, pred_Y)
+
+    pred_Y_rounded = np.copy(pred_Y)
+    pred_Y_rounded[pred_Y_rounded >= cutoff] = 1
+    pred_Y_rounded[pred_Y_rounded < cutoff] = 0
 
     metrics_results = {}
 
     fpr, tpr, thresholds = metrics.roc_curve(true_Y, pred_Y, pos_label=1)
 
-    metrics_results['fpr'] = fpr.tolist()
-    metrics_results['tpr'] = tpr.tolist()
+    # for ROC curves
+    metrics_results['roc_fpr'] = fpr.tolist()
+    metrics_results['roc_tpr'] = tpr.tolist()
+
     metrics_results['auc'] = metrics.auc(fpr, tpr)
 
+    tn, fp, fn, tp = metrics.confusion_matrix(true_Y, pred_Y_rounded).ravel()
+
+    metrics_results['sensitivity'] = metrics.recall_score(true_Y, pred_Y_rounded)
+    metrics_results['precision'] = metrics.precision_score(true_Y, pred_Y_rounded)
+    metrics_results['specificity'] = tn / (tn + fp)
+    metrics_results['tn'] = tn 
+    metrics_results['fp'] = fp 
+    metrics_results['fn'] = fn 
+    metrics_results['tp'] = tp 
+
     # log 
-    name = "{prefix}_{metric}".format(prefix=prefix, metric='auc')
-    ex.log_scalar(name, metrics_results['auc'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='auc'), metrics_results['auc'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='sensitivity'), metrics_results['sensitivity'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='precision'), metrics_results['precision'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='specificity'), metrics_results['specificity'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='tn'), metrics_results['tn'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='fp'), metrics_results['fp'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='fn'), metrics_results['fn'])
+    ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='tp'), metrics_results['tp'])
 
     return metrics_results
 

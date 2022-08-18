@@ -163,8 +163,10 @@ def get_results_df(exp_root: Path, metric_cols, group_by_cols):
         config_index = index_of_match(config_columns, metric_columns, metric_cols, group_by_cols)
 
         if config_index is None:
-            breakpoint()
-            raise RuntimeError(f'Could not find group for experiment with config {config_columns} and metrics {metric_columns}')
+            print(f'Could not get metrics for experiment run {run}')
+            print(f'As not find group for experiment with config {config_columns} and metrics {metric_columns}')
+
+            continue
 
         # Subset config and metrics
         row = [config[key] for key in group_by_cols] + [metrics[key] for key in metric_cols[config_index]]

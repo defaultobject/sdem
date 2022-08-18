@@ -42,6 +42,11 @@ def read_pickle():
     raise NotImplementedError()
 
 
+def is_bool_str(v: str) -> bool:
+    if (v.lower() in YES_LIST)or v.lower() in NO_LIST :
+        return True
+    return False
+
 def str_to_bool(v: str) -> bool:
     """
     Convert string input to a boolean
@@ -328,7 +333,7 @@ def zip_dir(path, zipf, ignore_dir_arr=None, dir_path=None):
             else:
                 target_dir = os.path.join(*root_split[(len(path_split) - 1) :])
 
-            zipf.write(os.path.join(root, f), os.path.join(target_dir, f))
+            zipf.write(os.path.join(root, f), str(os.path.join(target_dir, f)))
 
 
 def ensure_backslash(s):
@@ -336,3 +341,24 @@ def ensure_backslash(s):
         return s + "/"
     return s
 
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text  
+
+
+def process_unknown_kwarg_var(v):
+    if is_bool_str(v):
+        return str_to_bool(v)
+    return v
+
+def pass_unknown_kargs(unknown_args) -> dict:
+    if len(unknown_args) == 0:
+        return {}
+
+    # TODO: check that input is correct
+    ind = list(range(int(len(unknown_args)/2))) 
+    return {
+        remove_prefix(unknown_args[i*2], '--'): process_unknown_kwarg_var(unknown_args[(i*2)+1] )
+        for i in ind
+    }
