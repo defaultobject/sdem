@@ -15,9 +15,6 @@ import numpy as np
 
 import os
 
-import slurmjobs
-import slurmjobs.util as uti
-
 import shutil
 import zipfile
 import subprocess
