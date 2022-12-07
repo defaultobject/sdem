@@ -22,7 +22,7 @@ setuptools.setup(
         "typer",
         "loguru",
         "slurmjobs",
-        "sacred@git+https://github.com/IDSIA/sacred.git#egg=sacred-0.8.3",
+        "sacred@git+https://github.com/IDSIA/sacred.git#egg=sacred",
         "seml",
         "scikit-learn",
         "tabulate",
