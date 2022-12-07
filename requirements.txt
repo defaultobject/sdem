@@ -8,3 +8,7 @@ tabulate
 jupyter
 black
 rich
+dvc
+pandas 
+numpy
+PyYAML

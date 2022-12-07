@@ -9,6 +9,8 @@ import hashlib
 import json
 import uuid
 import copy
+import numpy as np
+from collections.abc import Iterable
 
 import importlib
 import importlib.util
@@ -362,3 +364,26 @@ def pass_unknown_kargs(unknown_args) -> dict:
         remove_prefix(unknown_args[i*2], '--'): process_unknown_kwarg_var(unknown_args[(i*2)+1] )
         for i in ind
     }
+
+def flatten(xs):
+    """
+    Flatten a mixed-depth list into a single depth flat list 
+    Supports: lists, numpy array, jax arrays
+    """
+    res = []
+    for i in xs:
+        # convert jax arrays to numpy array
+        if type(i).__name__ == 'DeviceArray':
+            i = np.array(i)
+
+        # convery any numpy arrays to lists
+        if isinstance(i, np.ndarray):
+            i = i.tolist()
+
+        if isinstance(i, Iterable):
+            res = res + flatten(i)
+        else:
+            res.append(i)
+    
+    return res
+

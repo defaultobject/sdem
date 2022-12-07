@@ -155,6 +155,19 @@ def prune_unfinished(state, bin_path: Path, experiment_config: dict):
 def get_sacred_experiment_folders(runs_root: Path) -> list:
     return [folder for folder in os.listdir(runs_root) if folder.isnumeric()]
 
+def delete_all_experiments(state, bin_path: Path, experiment_config:dict):
+    """ Removes all local experiment folders """
+    # Load all sacred runs
+    runs_root = manager.get_sacred_runs_path(experiment_config)
+    experiment_folders = get_sacred_experiment_folders(runs_root) 
+
+    experiment_folders = order_experiment_folders_by_datetime(runs_root, experiment_folders)
+    for i, _id in enumerate(experiment_folders):
+        folder_path = runs_root / _id
+        _id = int(_id)
+
+        delete_id(folder_path, bin_path)
+
 
 def prune_experiments(state, bin_path: Path, experiment_config:dict):
     """

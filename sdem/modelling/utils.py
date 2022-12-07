@@ -2,7 +2,7 @@
 import numpy as np
 from tqdm import tqdm
 
-def batch_predict(XS, prediction_fn=None, batch_size=1000, verbose=False, axis=0, ci=False):
+def batch_predict(XS, prediction_fn=None, batch_size=1000, verbose=False, axis=0, ci=False, concat=True):
     # Ensure batch is less than the number of test points
     if XS.shape[0] < batch_size:
         batch_size = XS.shape[0]
@@ -53,7 +53,15 @@ def batch_predict(XS, prediction_fn=None, batch_size=1000, verbose=False, axis=0
 
         return y_median, y_ci_lower, y_ci_upper
     else:
-        y_mean = np.concatenate(ys_arr, axis=axis)
-        y_var = np.concatenate(ys_var_arr, axis=axis)
+        if concat:
+            y_mean = np.concatenate(ys_arr, axis=axis)
+            try:
+                y_var = np.concatenate(ys_var_arr, axis=axis)
+            except:
+                y_var = np.vstack(ys_var_arr)
+        else:
+            y_mean = ys_arr
+            y_var = ys_var_arr
+
 
         return y_mean, y_var

@@ -82,6 +82,24 @@ def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = Fal
 
     return matched_results, matched_configs
 
+def get_results_that_match_spec(spec_list: list, exp_root: Path, squeeze: bool = False):
+    matched_results = []
+    matched_configs = []
+
+    for spec in spec_list:
+        if type(spec) is dict:
+            matched_results_spec, matched_configs_spec = get_results_that_match_dict(spec, exp_root, squeeze)
+        elif type(spec) is list:
+            matched_results_spec, matched_configs_spec = get_results_that_match_spec(spec, exp_root, squeeze)
+        else:
+            raise RuntimeError()
+
+        matched_results = matched_results +  matched_results_spec
+        matched_configs = matched_configs +  matched_configs_spec
+
+    return matched_results, matched_configs
+
+
 
 def index_of_match(config_columns, metric_columns, metric_cols, group_by_cols):
     for i in range(len(metric_cols)):
@@ -256,7 +274,8 @@ def get_ordered_table(
     flatten=False,
     metric_fn=None,
     scale: typing.Optional[dict]=None,
-    verbose=False
+    verbose=False,
+    include_dim = True
 ):
     """
     Constructs a table of results from an sdem experiment. This supports finding mean and standard deviations over a given group (i.e folds).
@@ -298,7 +317,7 @@ def get_ordered_table(
         # create actions to apply over a grouped table
         agg_dict = {}
         for m in metrics[i]:
-            agg_dict[m] = ['mean', 'std']
+            agg_dict[m] = ['mean', 'std', 'count']
 
         if group_by is not None:
             #ensure that none of the group by columns are unhashable
@@ -340,6 +359,7 @@ def get_ordered_table(
                 ordered_df = select_results(ordered_df, select_filter)
 
             # We can assume that metrics is a list of single element because we are stacking all the found groups together
+            ordered_df['_dim'] = ordered_df[f'{metrics[0][0]}_count']
             for m in metrics[0]:
                 # For each metric combine the mean and std into a form like `mean \pm std`
                 ordered_df[f'{m}_score'] = ordered_df.apply(
@@ -347,7 +367,7 @@ def get_ordered_table(
                     axis=1
                 )
                 # Remove mean and std only columns
-                ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std'], axis=1)
+                ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std', f'{m}_count'], axis=1)
             
         return ordered_df
     else:

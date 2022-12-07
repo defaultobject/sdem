@@ -31,23 +31,39 @@ def log_binary_scalar_metrics(
 
     metrics_results = {}
 
-    fpr, tpr, thresholds = metrics.roc_curve(true_Y, pred_Y, pos_label=1)
+    try:
+        fpr, tpr, thresholds = metrics.roc_curve(true_Y, pred_Y, pos_label=1)
 
-    # for ROC curves
-    metrics_results['roc_fpr'] = fpr.tolist()
-    metrics_results['roc_tpr'] = tpr.tolist()
+        # for ROC curves
+        metrics_results['roc_fpr'] = fpr.tolist()
+        metrics_results['roc_tpr'] = tpr.tolist()
 
-    metrics_results['auc'] = metrics.auc(fpr, tpr)
+        metrics_results['auc'] = metrics.auc(fpr, tpr)
+    except Exception as e:
+        # for ROC curves
+        metrics_results['roc_fpr'] = np.NaN
+        metrics_results['roc_tpr'] = np.NaN
+        metrics_results['auc'] = np.NaN
 
-    tn, fp, fn, tp = metrics.confusion_matrix(true_Y, pred_Y_rounded).ravel()
+    try:
+        tn, fp, fn, tp = metrics.confusion_matrix(true_Y, pred_Y_rounded).ravel()
 
-    metrics_results['sensitivity'] = metrics.recall_score(true_Y, pred_Y_rounded)
-    metrics_results['precision'] = metrics.precision_score(true_Y, pred_Y_rounded)
-    metrics_results['specificity'] = tn / (tn + fp)
-    metrics_results['tn'] = tn 
-    metrics_results['fp'] = fp 
-    metrics_results['fn'] = fn 
-    metrics_results['tp'] = tp 
+        metrics_results['sensitivity'] = metrics.recall_score(true_Y, pred_Y_rounded)
+        metrics_results['precision'] = metrics.precision_score(true_Y, pred_Y_rounded)
+        metrics_results['specificity'] = tn / (tn + fp)
+        metrics_results['tn'] = tn 
+        metrics_results['fp'] = fp 
+        metrics_results['fn'] = fn 
+        metrics_results['tp'] = tp 
+    except Exception as e:
+        metrics_results['sensitivity'] = np.NaN
+        metrics_results['precision'] = np.NaN
+        metrics_results['specificity'] = np.NaN
+        metrics_results['tn'] = np.NaN 
+        metrics_results['fp'] = np.NaN 
+        metrics_results['fn'] = np.NaN 
+        metrics_results['tp'] = np.NaN 
+
 
     # log 
     ex.log_scalar("{prefix}_{metric}".format(prefix=prefix, metric='auc'), metrics_results['auc'])
@@ -81,6 +97,11 @@ def log_regression_scalar_metrics(
 
         if np.any(np.isnan(pred_Y)):
             print('NaNs in prediction')
+            metrics_results[k] = None
+            continue
+
+        if true_Y.size == 0:
+            print('No True Data')
             metrics_results[k] = None
             continue
 

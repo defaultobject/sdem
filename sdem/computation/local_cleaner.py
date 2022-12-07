@@ -9,7 +9,7 @@ from . import manager, sacred_manager, cluster
 import os
 
 
-def clean(state):
+def clean(state, delete_all):
     """
     We do not delete any experiments, only move them to a temporal folder.
     """
@@ -22,9 +22,14 @@ def clean(state):
     if experiment_config['template']["use_mongo"]:
         raise NotImplementedError()
 
-    ask_permission(
-        "Prune experiment files?", lambda: sacred_manager.prune_experiments(state, bin_path, experiment_config)
-    )
+    if delete_all:
+        ask_permission(
+            "Delete ALL files?", lambda: sacred_manager.delete_all_experiments(state, bin_path, experiment_config)
+        )
+    else:
+        ask_permission(
+            "Prune experiment files?", lambda: sacred_manager.prune_experiments(state, bin_path, experiment_config)
+        )
 
     ask_permission("Fix Run IDs?", lambda: sacred_manager.fix_filestorage_ids(state, experiment_config))
 

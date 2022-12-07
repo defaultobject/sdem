@@ -259,6 +259,7 @@ def get_configs_from_model_files(state: 'State', model_root = None, ignore_files
                     status.console.log(f'Loaded configs from {experiment}')
                 except Exception as e:
                     state.console.print(e)
+                    #state.console.print_exception(show_locals=True)
                     status.console.log(f'!Error loading configs from {experiment} -- Skipping!')
 
             #store here so we can revert
