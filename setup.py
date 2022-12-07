@@ -18,5 +18,20 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     scripts=["cli/sdem"],
-    install_requires = [line.strip() for line in open("requirements.txt").readlines()]
+    install_requires = [
+        "typer",
+        "loguru",
+        "slurmjobs",
+        "git+https://github.com/IDSIA/sacred",
+        "seml",
+        "scikit-learn",
+        "tabulate",
+        "jupyter",
+        "black",
+        "rich",
+        "dvc",
+        "pandas ",
+        "numpy",
+        "PyYAML"
+    ]
 )

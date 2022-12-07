@@ -1,14 +1,1 @@
-typer
-loguru
-slurmjobs
-git+https://github.com/IDSIA/sacred
-seml
-scikit-learn
-tabulate
-jupyter
-black
-rich
-dvc
-pandas 
-numpy
-PyYAML
+.
