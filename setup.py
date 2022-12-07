@@ -22,7 +22,6 @@ setuptools.setup(
         "typer",
         "loguru",
         "slurmjobs",
-        "git+https://github.com/IDSIA/sacred",
         "seml",
         "scikit-learn",
         "tabulate",
@@ -33,5 +32,8 @@ setuptools.setup(
         "pandas ",
         "numpy",
         "PyYAML"
+    ],
+    dependency_links = [
+        "https://github.com/IDSIA/sacred"
     ]
 )
