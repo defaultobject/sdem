@@ -18,4 +18,5 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     scripts=["cli/sdem"],
+    install_requires = [line.strip() for line in open("requirements.txt").readlines()]
 )
