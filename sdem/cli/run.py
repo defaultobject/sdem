@@ -20,9 +20,10 @@ def run(
         True, help="If true will automatically call sbatch to run files on cluster"
     ),
     ignore: List[str] = typer.Option([], help="List of file to not get configs from."),
-    limit: int = typer.Option(None, help="Limit number of runs")
+    limit: int = typer.Option(None, help="Limit number of runs"),
+    docker_image: str = typer.Option(None, help="Optional docker image")
 ):
-
+    
     state = ctx.obj
 
     state.console.rule('Running experiments')
@@ -71,7 +72,10 @@ def run(
 
         fn = manager.get_dispatched_fn('run', location, experiment_config)
 
-        fn(state, configs_to_run, run_settings, location)
+        if location == 'docker':
+            fn(state, configs_to_run, run_settings, location, docker_image=docker_image)
+        else:
+            fn(state, configs_to_run, run_settings, location)
 
 
 @dispatch.register("run", "local")
@@ -81,9 +85,9 @@ def local_run(state, configs_to_run, run_settings, location):
 
 
 @dispatch.register("run", "docker")
-def docker_run(state, configs_to_run, run_settings, location):
+def docker_run(state, configs_to_run, run_settings, location, **kwargs):
     state.console.rule(f'Running on docker -- {location}')
-    docker_runner.docker_run(state, configs_to_run, run_settings, location)
+    docker_runner.docker_run(state, configs_to_run, run_settings, location, **kwargs)
 
 @dispatch.register("run", "cluster")
 def cluster_run(state, configs_to_run, run_settings, location):

@@ -41,6 +41,8 @@ def global_state(ctx: typer.Context, verbose: bool = False, dry: bool = False):
     It sets up the current state and sets global settings.
     """
 
+    # allow kwargs
+
     config = state.get_state(verbose, dry)
 
     config.console.print('Running in verbose mode')
