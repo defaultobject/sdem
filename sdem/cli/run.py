@@ -85,9 +85,9 @@ def local_run(state, configs_to_run, run_settings, location):
 
 
 @dispatch.register("run", "docker")
-def docker_run(state, configs_to_run, run_settings, location, **kwargs):
+def docker_run(state, configs_to_run, run_settings, location, docker_image = None):
     state.console.rule(f'Running on docker -- {location}')
-    docker_runner.docker_run(state, configs_to_run, run_settings, location, **kwargs)
+    docker_runner.docker_run(state, configs_to_run, run_settings, location, docker_image)
 
 @dispatch.register("run", "cluster")
 def cluster_run(state, configs_to_run, run_settings, location):

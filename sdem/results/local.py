@@ -23,6 +23,40 @@ def _get_last_checkpoints(d):
 
     return _flatten_checkpoint_dict(_d)
 
+def get_experiments_that_match_dict(_dict: dict, exp_root: Path):
+    # Ensure root is a path 
+    exp_root = Path(exp_root)
+
+
+    # load experiment configs
+    config = state.get_state(True, True)
+    config.load_experiment_config()
+    experiment_config = config.experiment_config
+
+    # load all experiments
+    model_path = manager.get_models_folder_path(experiment_config, exp_root=exp_root)
+
+    _, ex_dict = manager.get_configs_from_model_files(
+        config,
+        model_root= model_path,
+        return_ex = True,
+        import_hook = False # no need to custom hook as we should be in the correct env to load the model
+    )
+
+    # filter out ex, and config pairs that do not match _dict
+    matched_dict = {}
+    for ex, config_list in ex_dict.items():
+        matched_config_list = []
+        for config in config_list:
+            if utils.dict_is_subset(_dict, config):
+                matched_config_list.append(config)
+
+        if len(matched_config_list) > 0:
+            matched_dict[ex] = matched_config_list
+
+    return matched_dict
+
+
 def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = False) -> Tuple[dict, dict]:
     """
 

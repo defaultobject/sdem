@@ -195,7 +195,8 @@ def get_model_files(state: 'State', model_root=None) -> List[Path]:
 
     return experiment_files
 
-def get_configs_from_model_files(state: 'State', model_root = None, ignore_files: list = None) -> List[dict]:
+
+def get_configs_from_model_files(state: 'State', model_root = None, ignore_files: list = None, return_ex = False, import_hook = True) -> List[dict]:
     """
     Assumes that all configs are defined within the model files:
         models/m_{name}.py
@@ -229,8 +230,12 @@ def get_configs_from_model_files(state: 'State', model_root = None, ignore_files
 
         experiment_config_arr = []
 
-        # enable the custom hook to avoid uncessary import errors
-        set_custom_import()
+        # a dictionary mapping from each experiment object to its configs
+        experiment_config_dict: dict = {}
+
+        if import_hook:
+            # enable the custom hook to avoid uncessary import errors
+            set_custom_import()
 
         for experiment in experiment_files:
             status.update(f"Loading configs from {experiment}")
@@ -256,6 +261,7 @@ def get_configs_from_model_files(state: 'State', model_root = None, ignore_files
                         )
                         experiment_config_arr.append(config)
 
+                    experiment_config_dict[mod.ex] = experiment_config_arr
                     status.console.log(f'Loaded configs from {experiment}')
                 except Exception as e:
                     state.console.print(e)
@@ -271,9 +277,12 @@ def get_configs_from_model_files(state: 'State', model_root = None, ignore_files
             os.chdir(cwd)
 
 
-        # revert back to default import 
-        reset_import()
+        if import_hook:
+            # revert back to default import 
+            reset_import()
 
+        if return_ex:
+            return experiment_config_arr, experiment_config_dict
         return experiment_config_arr
 
 

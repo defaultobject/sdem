@@ -33,6 +33,7 @@ class Experiment(SacredExperiment):
             os.chdir(prev_cwd)
 
         self.config_function = None
+        self.model_function = None
 
     def configs(self, function):
         self.config_function = function
@@ -54,6 +55,10 @@ class Experiment(SacredExperiment):
         return metrics.log_regression_scalar_metrics(
             self, X, Y, prediction_fn, var_flag=var_flag, log=log, prefix=prefix
         )
+
+    def model(self, function):
+        """ For returning the trained model.  """
+        self.model_function = function
 
     def automain(self, function):
         """
