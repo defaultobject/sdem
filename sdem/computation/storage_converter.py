@@ -8,7 +8,6 @@ import datetime
 import dateutil.parser
 
 import os
-import seml.queuing
 
 from .. import state
 

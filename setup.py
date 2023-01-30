@@ -21,7 +21,7 @@ setuptools.setup(
     install_requires = [
         "typer",
         "loguru",
-        "slurmjobs",
+        "slurmjobs==0.2.0",
         "sacred@git+https://github.com/IDSIA/sacred.git#egg=sacred",
         "seml",
         "scikit-learn",

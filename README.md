@@ -4,13 +4,11 @@
 
 Sacred Experiment manager combines [sacred](https://github.com/IDSIA/sacred) and [dvc](https://dvc.org) to run experiments locally, on HPC clusters and across different users. 
 
-
-
 Currently `sdem` works with `sacred` local files, but there are plans to support `mongo` experiments.
 
-
-
 ## Installation
+
+Requires python==3.9
 
 ### Through pip
 
@@ -29,8 +27,6 @@ pip install -e .
 ## Example
 
 The full example is shown in the `example` folder.
-
-
 
 #### Run
 

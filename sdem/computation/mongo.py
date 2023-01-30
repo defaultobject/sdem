@@ -10,7 +10,6 @@ import dateutil.parser
 import numpy as np
 
 import os
-import seml.queuing
 
 import slurmjobs
 from slurmjobs.args import NoArgVal
