@@ -42,7 +42,7 @@ def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, re
 
     # Log metrics for each output
     if YS is not None:
-        P = YS.shape[1]
+        P = np.min(pred_mu.shape[0], YS.shape[1])
 
         for p in range(P):
             metric_name = f'{dataset_name}_{p}'
