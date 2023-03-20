@@ -57,7 +57,7 @@ def get_experiments_that_match_dict(_dict: dict, exp_root: Path):
     return matched_dict
 
 
-def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = False) -> Tuple[dict, dict]:
+def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = False, result_pattern: str = None) -> Tuple[dict, dict]:
     """
 
     """
@@ -83,7 +83,9 @@ def get_results_that_match_dict(_dict: dict, exp_root: Path, squeeze: bool = Fal
     matched_configs = []
     matched_results = []
 
-    result_pattern = manager.get_results_output_pattern(experiment_config)
+    if result_pattern is None:
+        result_pattern = manager.get_results_output_pattern(experiment_config)
+
     results_path = manager.get_results_path(experiment_config, exp_root=exp_root)
 
     for config in config_arr:
