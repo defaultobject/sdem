@@ -15,8 +15,23 @@ import shutil
 import zipfile
 import subprocess
 
+DEFAULT_CLUSTER_CONFIG = {
+    'jump_host': None,
+    'ssh_config_file': None,
+    'key': None, # ssh key
+    'sbatch': {}
+}
 
-UNPACK_ON_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+def get_cluster_config(experiment_config, location):
+    cluster_config = experiment_config[location]
+    # add default cluster/necessary keys
+    cluster_config = utils.add_dicts([DEFAULT_CLUSTER_CONFIG, cluster_config])
+    return cluster_config
+
+# ========== SSH BASH SCRIPT TEMPLATES ========
+
+
+UNPACK_ON_CLUSTER_SCRIPT = """{ssh_auth} -o StrictHostKeyChecking=no 'bash -s' << HERE
 unzip cluster.zip -d {exp_name}
 rm -rf cluster.zip
 cd {exp_name}
@@ -24,26 +39,27 @@ mkdir results
 {jobs}
 HERE"""
 
-SSH_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+SSH_SCRIPT = """{ssh_auth} -o StrictHostKeyChecking=no 'bash -s' << HERE
 cd {exp_name}
 {jobs}
 HERE"""
 
-CHECK_IF_EXPERIMENT_ON_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+CHECK_IF_EXPERIMENT_ON_CLUSTER_SCRIPT = """{ssh_auth} -o StrictHostKeyChecking=no 'bash -s' << HERE
     test -d "{exp_name}" && echo "1" || echo "0"
 HERE"""
 
 
-CLEAN_UP_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+CLEAN_UP_CLUSTER_SCRIPT = """{ssh_auth} -o StrictHostKeyChecking=no 'bash -s' << HERE
 rm -rf cluster.zip
 rm -rf {exp_name}
 HERE"""
 
-CHECK_CLUSTER_SCRIPT = """ssh  -i {key} "{remotehost}" -o StrictHostKeyChecking=no 'bash -s' << HERE
+CHECK_CLUSTER_SCRIPT = """{ssh_auth} -o StrictHostKeyChecking=no 'bash -s' << HERE
     squeue -u {user}
 HERE"""
 
-SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e "ssh -i {key}" {remotehost}:{folder_dest} {folder_origin}'
+SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e "{ssh_auth}" {remotehost}:{folder_dest} {folder_origin}'
+
 LOCAL_SYNC_SCRIPT = (
     "mkdir -p {folder_origin} && rsync -ra {folder_dest} {folder_origin}"
 )
@@ -52,18 +68,90 @@ CLUSTER_ZIP = "jobs/cluster.zip"
 
 FOLDERS_TO_SYNC = ["jobs/", "results/", "models/runs/_sources"]
 
+# ========== HELPER FUNCTIONS ========
+
+def get_remote_host(cluster_config):
+    return "{user}@{host}".format(
+        user=cluster_config["user"], host=cluster_config["host"]
+    )
+
+def get_ssh_with_auth(i = None, J = None, remotehost = None, ssh_config_file=None):
+    s_part = 'ssh '
+
+    if ssh_config_file is not None:
+        s_part += '-F "%s" ' % (ssh_config_file,)
+
+    if J is not None:
+        s_part += '-J %s ' % (J,)
+
+    if i is not None:
+        s_part += '-i %s ' % (i,)
+
+    return s_part + '"%s"' % (remotehost,) 
+
+def ssh(base_script, cluster_config, run = True, **kwargs):
+    i = cluster_config["key"]
+    J = cluster_config["jump_host"]
+    ssh_config_file = cluster_config["ssh_config_file"]
+    remotehost = get_remote_host(cluster_config)
+
+    base_ssh_str = get_ssh_with_auth(i = i, J = J, remotehost=remotehost, ssh_config_file=ssh_config_file)
+
+    format_dict = {'ssh_auth': base_ssh_str, **kwargs}
+    script = base_script.format(**format_dict) 
+
+    if run:
+        os.system(script)
+    else:
+        return script
+
+
+def scp(cluster_config, localfile = None, remotefile = None,):
+    """
+    Args are directly given to scp. Constructs
+        scp (-i i) (-J J) "localfile" "remotehost:remotefile"
+
+
+    """
+    i = cluster_config["key"]
+    J = cluster_config["jump_host"]
+    remotehost = get_remote_host(cluster_config)
+
+    s_part = 'scp '
+
+    if J is not None:
+        s_part += '-J %s ' % (J,)
+
+    if i is not None:
+        s_part += '-i %s ' % (i,)
+
+    s = s_part + '"%s" "%s:%s"' % (
+        localfile,
+        remotehost,
+        remotefile,
+    )
+
+    os.system(s)
+
+
+
+
+# ========== SDEM FUNCTIONALITY FUNCTIONS ========
+
 
 def check_if_experiment_exists_on_cluster(exp_name, cluster_config):
     """
     Return true if a folder exp_name exists in the home directory of the cluster
         otherwise return false
     """
-    remotehost = "{user}@{host}".format(
-        user=cluster_config["user"], host=cluster_config["host"]
+
+    script = ssh(
+        CHECK_IF_EXPERIMENT_ON_CLUSTER_SCRIPT, 
+        cluster_config = cluster_config,
+        exp_name=exp_name,
+        run = False
     )
-    script = CHECK_IF_EXPERIMENT_ON_CLUSTER_SCRIPT.format(
-        key=cluster_config["key"], remotehost=remotehost, exp_name=exp_name
-    )
+
     try:
         cout = subprocess.run(script, stdout=subprocess.PIPE, shell=True).stdout.decode(
             "utf-8"
@@ -108,8 +196,17 @@ def create_slurm_scripts(state, configs_to_run, run_settings, experiment_name, c
     for _file in files_to_run:
         configs_of_file = [c for c in configs_to_run if c["filename"] == _file]
 
+        # configs_of_file comes from the model.py file
+
+        # py env takes priority
+        if "pyenv" in cluster_config.keys():
+            # run using singularity
+            run_command = "source activate {pyenv} &&".format(
+                pyenv=cluster_config["pyenv"]
+            )
+            run_command = run_command + " python {filename}"
         # assume that every config has the same sif file
-        if "sif" in configs_of_file[0].keys():
+        elif "sif" in configs_of_file[0].keys():
             # run using singularity defined in model file
             run_command = "singularity run --nv {sif_location}".format(
                 sif_location=configs_of_file[0]["sif"]
@@ -122,6 +219,7 @@ def create_slurm_scripts(state, configs_to_run, run_settings, experiment_name, c
                 sif_location=cluster_config["sif"]
             )
             run_command = run_command + " python {filename}"
+
         else:
             run_command = "python {filename}"
 
@@ -152,6 +250,7 @@ def create_slurm_scripts(state, configs_to_run, run_settings, experiment_name, c
             ngpus=ngpus,
             n_gpus=ngpus,
         )
+
 
         # go over every order_id
         all_order_ids = [c["order_id"] for c in configs_of_file]
@@ -222,14 +321,11 @@ def move_files_to_cluster(
     if state.verbose:
         logger.info("sending files to: {remotehost}".format(remotehost=remotehost))
 
-    s = 'scp -i %s "%s" "%s:%s"' % (
-        cluster_config["key"],
-        localfile,
-        remotehost,
-        remotefile,
+    scp(
+        cluster_config, 
+        localfile = localfile,
+        remotefile = remotefile
     )
-
-    os.system(s)
 
     # unzip on cluster
 
@@ -240,13 +336,13 @@ def move_files_to_cluster(
 
         jobs += "mkdir jobs/{_file}/slurm \n".format(_file=_filename)
 
-    run_ssh_script = UNPACK_ON_CLUSTER_SCRIPT.format(
-        key=cluster_config["key"],
-        remotehost=remotehost,
+    run_ssh_script = ssh(
+        UNPACK_ON_CLUSTER_SCRIPT,
+        cluster_config = cluster_config,
         exp_name=experiment_name,
         jobs=jobs,
+        run = True
     )
-    os.system(run_ssh_script)
 
 
 def run_on_cluster(state, configs_to_run, run_settings, experiment_name, cluster_config):
@@ -264,14 +360,15 @@ def run_on_cluster(state, configs_to_run, run_settings, experiment_name, cluster
         jobs += "sh ./jobs/{_file}/run_{_file}.sh \n".format(_file=_filename)
 
     # run experiments and get batch ids
-    run_ssh_script = SSH_SCRIPT.format(
-        key=cluster_config["key"],
-        remotehost=remotehost,
+    run_ssh_script = ssh(
+        SSH_SCRIPT,
+        cluster_config = cluster_config,
         exp_name=experiment_name,
-        jobs=jobs,
+        jobs = jobs,
+        run=True
     )
 
-    os.system(run_ssh_script)
+
 
 
 def cluster_run(state, configs_to_run, run_settings, location):
@@ -287,14 +384,17 @@ def cluster_run(state, configs_to_run, run_settings, location):
         Run slurm scripts
     """
     experiment_config = state.experiment_config
-    cluster_config = experiment_config[location]
     experiment_name = manager.get_experiment_name(experiment_config)
 
-    # Only run if the experiment is already on the cluster
-    if check_if_experiment_exists_on_cluster(experiment_name, cluster_config):
-        state.error(f"[red bold]Experiment is already on cluster - {location}, exiting![/]")
+    cluster_config = get_cluster_config(experiment_config, location)
 
-        return None
+
+    # Only run if the experiment is already on the cluster
+    if run_settings['check_cluster']:
+        if check_if_experiment_exists_on_cluster(experiment_name, cluster_config):
+            state.error(f"[red bold]Experiment is already on cluster - {location}, exiting![/]")
+
+            return None
 
 
     # Create HPC slurm scripts using slurmjobs
@@ -316,7 +416,7 @@ def cluster_run(state, configs_to_run, run_settings, location):
 def clean_up_cluster(location, state):
     experiment_config = state.experiment_config
 
-    cluster_config = experiment_config[location]
+    cluster_config = get_cluster_config(experiment_config, location)
     experiment_name = manager.get_experiment_name(experiment_config)
 
     if not (check_if_experiment_exists_on_cluster(experiment_name, cluster_config)):
@@ -335,8 +435,11 @@ def clean_up_cluster(location, state):
     remotehost = "{user}@{host}".format(
         user=cluster_config["user"], host=cluster_config["host"]
     )
-    script = CLEAN_UP_CLUSTER_SCRIPT.format(
-        key=cluster_config["key"], remotehost=remotehost, exp_name=experiment_name
+    script = ssh(
+        CLEAN_UP_CLUSTER_SCRIPT,
+        cluster_config = cluster_config,
+        exp_name=experiment_name,
+        run = False
     )
 
     if state.verbose:
@@ -357,13 +460,14 @@ def sync_files(folders_to_sync, folder_origin, cluster_config):
         user=cluster_config["user"], host=cluster_config["host"]
     )
 
-    sync_script_f = SYNC_SCRIPT.format(
-        key=cluster_config["key"],
-        remotehost=remotehost,
+    ssh(
+        SYNC_SCRIPT,
+        cluster_config = cluster_config,
+        remotehost = remotehost,
         folder_dest=folders_to_sync,
         folder_origin=folder_origin,
+        run = True
     )
-    os.system(sync_script_f)
 
 
 def local_sync(state, folder_origin):
@@ -439,7 +543,7 @@ def sync_with_cluster(state, location):
     This is to get around the fact the experiment folder on the cluster may be prefixed.
     """
     experiment_config = state.experiment_config
-    cluster_config = experiment_config[location]
+    cluster_config = get_cluster_config(experiment_config, location)
     experiment_name = manager.get_experiment_name(experiment_config)
     experiment_folder_name = manager.get_experiment_folder_name(experiment_config)
 

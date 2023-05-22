@@ -26,6 +26,7 @@ def clean_local(state, location, delete_all):
 
 
 @dispatch.register("clean", "cluster")
+@dispatch.register("clean", "server")
 def clean_cluster(state, location, delete_all):
     state.console.rule(f'Cleaning cluster -- {location}')
     cluster.clean_up_cluster(location, state)

@@ -19,6 +19,9 @@ def run(
     sbatch: bool = typer.Option(
         True, help="If true will automatically call sbatch to run files on cluster"
     ),
+    check: bool = typer.Option(
+        True, help="Check if files are on cluster cluster"
+    ),
     ignore: List[str] = typer.Option([], help="List of file to not get configs from."),
     limit: int = typer.Option(None, help="Limit number of runs"),
     docker_image: str = typer.Option(None, help="Optional docker image")
@@ -43,6 +46,7 @@ def run(
         "observer": observer,
         "force_all": force_all,
         "run_sbatch": sbatch,
+        "check_cluster": check,
     }
 
     # load all experiment configs 
@@ -98,4 +102,4 @@ def cluster_run(state, configs_to_run, run_settings, location):
 @dispatch.register("run", "server")
 def server_run(state, configs_to_run, run_settings, location):
     state.console.rule('Running on server')
-    server.server_run(configs_to_run, run_settings, location)
+    server.server_run(state, configs_to_run, run_settings, location)

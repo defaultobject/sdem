@@ -51,12 +51,13 @@ class State:
             }
         }
 
+
     def load_experiment_config(self):
         self.console.rule('Loading experiment config')
 
         self.experiment_config = manager.get_experiment_config(
             self,
-            self.experiment_config,
+            self.experiment_config, #default config
             exp_root=self.root
         )
 
