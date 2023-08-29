@@ -58,7 +58,7 @@ CHECK_CLUSTER_SCRIPT = """{ssh_auth} -o StrictHostKeyChecking=no 'bash -s' << HE
     squeue -u {user}
 HERE"""
 
-SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e "{ssh_auth}" {remotehost}:{folder_dest} {folder_origin}'
+SYNC_SCRIPT = 'cd ../ && rsync -ra --relative --progress --compress -e \'{ssh_auth_no_remote}\' {remotehost}:{folder_dest} {folder_origin}'
 
 LOCAL_SYNC_SCRIPT = (
     "mkdir -p {folder_origin} && rsync -ra {folder_dest} {folder_origin}"
@@ -87,9 +87,12 @@ def get_ssh_with_auth(i = None, J = None, remotehost = None, ssh_config_file=Non
     if i is not None:
         s_part += '-i %s ' % (i,)
 
-    return s_part + '"%s"' % (remotehost,) 
+    if remotehost == None:
+        return s_part 
+    else:
+        return s_part + '"%s"' % (remotehost,) 
 
-def ssh(base_script, cluster_config, run = True, **kwargs):
+def ssh(base_script, cluster_config, run = True, verbose=False, **kwargs):
     i = cluster_config["key"]
     J = cluster_config["jump_host"]
     ssh_config_file = cluster_config["ssh_config_file"]
@@ -97,8 +100,14 @@ def ssh(base_script, cluster_config, run = True, **kwargs):
 
     base_ssh_str = get_ssh_with_auth(i = i, J = J, remotehost=remotehost, ssh_config_file=ssh_config_file)
 
-    format_dict = {'ssh_auth': base_ssh_str, **kwargs}
+    base_ssh_no_remotehost = get_ssh_with_auth(i = i, J = J, remotehost=None, ssh_config_file=ssh_config_file)
+
+
+    format_dict = {'ssh_auth_no_remote': base_ssh_no_remotehost, 'ssh_auth': base_ssh_str, **kwargs}
     script = base_script.format(**format_dict) 
+
+    if verbose:
+        logger.print(script)
 
     if run:
         os.system(script)
@@ -346,9 +355,7 @@ def move_files_to_cluster(
 
 
 def run_on_cluster(state, configs_to_run, run_settings, experiment_name, cluster_config):
-    remotehost = "{user}@{host}".format(
-        user=cluster_config["user"], host=cluster_config["host"]
-    )
+    remotehost = get_remote_host(cluster_config)
 
     files_to_run = list(set([c["filename"] for c in configs_to_run]))
 
@@ -365,7 +372,8 @@ def run_on_cluster(state, configs_to_run, run_settings, experiment_name, cluster
         cluster_config = cluster_config,
         exp_name=experiment_name,
         jobs = jobs,
-        run=True
+        run=True,
+        verbose=True
     )
 
 

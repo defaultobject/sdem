@@ -14,6 +14,27 @@ from pathlib import Path
 
 from . import cluster
 
+def make_run_file(state, configs_to_run, run_settings, experiment_name, experiment_config, cluster_config):
+
+    run_template = cluster_config['run_command']
+
+    fname = Path(f'jobs/run_{experiment_name}.sh')
+
+    if fname.exists():
+        fname.unlink()
+
+    with open (fname, 'w') as rsh:
+        for config in configs_to_run:
+            rsh.writelines(
+                run_template.format(
+                    experiment_name=experiment_name,
+                    filename=config['filename'],
+                    order_id=config['order_id'],
+                )+ '\n'
+            ) 
+
+    return fname
+
 def server_run(state, configs_to_run, run_settings, location):
     experiment_config = state.experiment_config
     cluster_config = cluster.get_cluster_config(experiment_config, location)
@@ -29,6 +50,11 @@ def server_run(state, configs_to_run, run_settings, location):
     
     #make sure jobs folder exists
     Path('jobs').mkdir(exist_ok=True)
+
+    # make run file
+    run_file: Path  = make_run_file(state, configs_to_run, run_settings, experiment_name, experiment_config, cluster_config)
+
+    # add run file to be synced
 
     cluster.compress_files_for_cluster(
         state, configs_to_run, run_settings, experiment_name, cluster_config

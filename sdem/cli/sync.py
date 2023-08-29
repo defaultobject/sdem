@@ -27,5 +27,5 @@ def cluster_sync(state, location):
 
 @dispatch.register("sync", "server")
 def cluster_sync(state, location):
-    raise NotImplementedError()
-    server.sync(location)
+    state.console.rule(f'Syncing with server -- {location}')
+    cluster.sync_with_cluster(state, location)
