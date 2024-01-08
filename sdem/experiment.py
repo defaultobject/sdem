@@ -34,6 +34,7 @@ class Experiment(SacredExperiment):
 
         self.config_function = None
         self.model_function = None
+        self.predict_function = None
 
     def configs(self, function):
         self.config_function = function
@@ -51,6 +52,11 @@ class Experiment(SacredExperiment):
         #call sacred run method
         self.run(captured_function.__name__)
 
+    def log_scalar(self, name, metric):
+        # only log when there is an observer
+        if len(self.observers) > 0:
+            super(Experiment, self).log_scalar(name, metric)
+
     def log_metrics(self, X, Y, prediction_fn, var_flag=True, log=True, prefix=None):
         return metrics.log_regression_scalar_metrics(
             self, X, Y, prediction_fn, var_flag=var_flag, log=log, prefix=prefix
@@ -59,6 +65,10 @@ class Experiment(SacredExperiment):
     def model(self, function):
         """ For returning the trained model.  """
         self.model_function = function
+
+    def predict(self, function):
+        """ For computing results.  """
+        self.predict_function = function
 
     def automain(self, function):
         """

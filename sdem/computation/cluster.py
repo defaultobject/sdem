@@ -107,7 +107,7 @@ def ssh(base_script, cluster_config, run = True, verbose=False, **kwargs):
     script = base_script.format(**format_dict) 
 
     if verbose:
-        logger.print(script)
+        logger.info(script)
 
     if run:
         os.system(script)

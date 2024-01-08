@@ -7,7 +7,7 @@ from rich.console import Console
 
 console = Console()
 
-def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, returns_ci, data_type):
+def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, returns_ci, data_type, callback=None):
     XS = data['X']
 
     YS = None
@@ -40,6 +40,7 @@ def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, re
             'var': pred_var
         }
 
+
     # Log metrics for each output
     if YS is not None:
         # Use min of predicition and Y so that we just compute metrics on which outputs are provided
@@ -54,16 +55,28 @@ def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, re
                 )
             elif data_type == 'binary':
                 metrics_p = log_binary_scalar_metrics(
-                        ex, YS[:, p], pred_mu[p], log=True, prefix=metric_name
+                    ex, YS[:, p], pred_mu[p], log=True, prefix=metric_name
                 )
             else:
                 raise RuntimeError()
 
+
+
             metrics[metric_name] = metrics_p
+
+            if callback is not None:
+                if returns_ci:
+                    raise NotImplementedError()
+                else:
+                    metrics[f'{metric_name}_callback'] = callback(ex, YS[:, p], pred_mu[p], pred_var[p], prefix=metric_name)
 
     return predictions, metrics
 
-def collect_results(ex, model, pred_fn, pred_data:dict, returns_ci: bool = False, training_time=None, data_type='regression'):
+def collect_results(ex, model, pred_fn, pred_data:dict, returns_ci: bool = False, training_time=None, data_type='regression', callback=None):
+    """
+    Args: 
+        callback: called for each output and dataset, useful for implementing own metrics
+    """
     results = {}
 
     results = {}
@@ -80,7 +93,8 @@ def collect_results(ex, model, pred_fn, pred_data:dict, returns_ci: bool = False
             dataset_name,
             pred_fn,
             returns_ci,
-            data_type
+            data_type,
+            callback=callback
         )
 
         # Log results

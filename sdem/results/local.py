@@ -204,6 +204,7 @@ def get_results_df(exp_root: Path, metric_cols, group_by_cols):
             logger.info(f"Skiping {run} because metrics is empty")
             continue
 
+
         # When there are multiply checkpoints we use the last one
         metrics = _get_last_checkpoints(metrics)
 
@@ -311,7 +312,8 @@ def get_ordered_table(
     metric_fn=None,
     scale: typing.Optional[dict]=None,
     verbose=False,
-    include_dim = True
+    include_dim = True,
+    drop_mean_and_std = True
 ):
     """
     Constructs a table of results from an sdem experiment. This supports finding mean and standard deviations over a given group (i.e folds).
@@ -339,6 +341,9 @@ def get_ordered_table(
     # Load results for all experiments
     # Each element of the list corresponds to separate table 
     all_results_df = get_results_df(exp_root, metrics, group_by)
+
+    if len(all_results_df) == 0:
+        raise RuntimeError('No Results Found')
 
     if verbose:
         print(f'Found {len(all_results_df)} groups')
@@ -402,8 +407,9 @@ def get_ordered_table(
                     lambda row: combine_mean_std(row, m, decimal_places), 
                     axis=1
                 )
-                # Remove mean and std only columns
-                ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std', f'{m}_count'], axis=1)
+                if drop_mean_and_std:
+                    # Remove mean and std only columns
+                    ordered_df = ordered_df.drop([f'{m}_mean', f'{m}_std', f'{m}_count'], axis=1)
             
         return ordered_df
     else:
