@@ -7,7 +7,12 @@ from rich.console import Console
 
 console = Console()
 
-def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, returns_ci, data_type, callback=None):
+def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, returns_ci, data_type, callback=None, global_callback = None):
+    """
+    Args
+       callback: callback called for each output
+       global_callback: called with all outputs
+    """
     XS = data['X']
 
     YS = None
@@ -46,21 +51,28 @@ def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, re
         # Use min of predicition and Y so that we just compute metrics on which outputs are provided
         P = min(pred_mu.shape[0], YS.shape[1])
 
+        if global_callback is not None:
+            global_metric_name = f'{dataset_name}'
+            metrics[f'{global_metric_name}_callback'] = global_callback(ex, model, XS, YS, pred_mu, pred_var, prefix=global_metric_name)
+
         for p in range(P):
             metric_name = f'{dataset_name}_{p}'
 
-            if data_type == 'regression':
+            if type(data_type) == list:
+                data_type_p = data_type[p]
+            else:
+                data_type_p = data_type
+
+            if data_type_p == 'regression':
                 metrics_p = log_regression_scalar_metrics(
-                        ex, YS[:, p], pred_mu[p], log=True, prefix=metric_name
+                    ex, YS[:, p], pred_mu[p], log=True, prefix=metric_name
                 )
-            elif data_type == 'binary':
+            elif data_type_p == 'binary':
                 metrics_p = log_binary_scalar_metrics(
                     ex, YS[:, p], pred_mu[p], log=True, prefix=metric_name
                 )
             else:
-                raise RuntimeError()
-
-
+                raise RuntimeError(f'Do not support data_type of {data_type_p}')
 
             metrics[metric_name] = metrics_p
 
@@ -72,7 +84,7 @@ def collect_results_for_dataset(ex, model, data, dataset_name, prediction_fn, re
 
     return predictions, metrics
 
-def collect_results(ex, model, pred_fn, pred_data:dict, returns_ci: bool = False, training_time=None, data_type='regression', callback=None):
+def collect_results(ex, model, pred_fn, pred_data:dict, returns_ci: bool = False, training_time=None, data_type='regression', callback=None, global_callback=None):
     """
     Args: 
         callback: called for each output and dataset, useful for implementing own metrics
@@ -94,7 +106,8 @@ def collect_results(ex, model, pred_fn, pred_data:dict, returns_ci: bool = False
             pred_fn,
             returns_ci,
             data_type,
-            callback=callback
+            callback=callback,
+            global_callback=global_callback
         )
 
         # Log results
